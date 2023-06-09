@@ -1,2 +1,2 @@
-# beam_gas_collisions
+# Beam Gas Collisions
 Cross section estimates of beam-gas interactions in the CERN accelerator complex.
