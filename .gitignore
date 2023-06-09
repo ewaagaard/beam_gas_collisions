@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Heavy files or images
+*.parquet
+*.png
+*.seq
+*.csv
+
 # C extensions
 *.so
 
