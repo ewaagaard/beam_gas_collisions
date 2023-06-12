@@ -28,9 +28,17 @@ PS_rest_gas =  beam_gas_collisions(pressure_data['PS'].values[0],
 SPS_rest_gas =  beam_gas_collisions(pressure_data['SPS'].values[0],
                                      gas_fractions['SPS'].values)
 
+# Initiate empty arrays for lifetime and rest gas 
 tau_values_LEIR = np.zeros(len(projectile_data.T.columns))
 tau_values_PS = np.zeros(len(projectile_data.T.columns))
 tau_values_SPS = np.zeros(len(projectile_data.T.columns))
+
+# Rows represent each projectile, columns each gas constituent
+# third dimension stacks 3 quantities: EL cross section, EC cross section and total cross section
+sigmas_LEIR = np.zeros([len(projectile_data.T.columns), len(gas_fractions), 3])
+sigmas_PS = np.zeros([len(projectile_data.T.columns), len(gas_fractions), 3])
+sigmas_SPS = np.zeros([len(projectile_data.T.columns), len(gas_fractions), 3])
+
 
 # Iterate over the different projectiles 
 for i, projectile in enumerate(projectile_data.T.columns):
@@ -45,6 +53,9 @@ for i, projectile in enumerate(projectile_data.T.columns):
 
     LEIR_rest_gas.set_projectile_data(projectile_data_LEIR)  
     tau_values_LEIR[i] = LEIR_rest_gas.calculate_total_lifetime_full_gas()
+    sigmas_LEIR[i, :, 0] = LEIR_rest_gas.return_all_sigmas()[0] # EL cross section
+    sigmas_LEIR[i, :, 1] = LEIR_rest_gas.return_all_sigmas()[1] # EC cross section
+    sigmas_LEIR[i, :, 2] = LEIR_rest_gas.return_all_sigmas()[0] + LEIR_rest_gas.return_all_sigmas()[1] # total cross section
 
     # Calculate lifetimes and cross sections for PS
     projectile_data_PS = np.array([projectile_data['Z'][projectile],
@@ -56,6 +67,9 @@ for i, projectile in enumerate(projectile_data.T.columns):
 
     PS_rest_gas.set_projectile_data(projectile_data_PS)  
     tau_values_PS[i] = PS_rest_gas.calculate_total_lifetime_full_gas()
+    sigmas_PS[i, :, 0] = PS_rest_gas.return_all_sigmas()[0] # EL cross section
+    sigmas_PS[i, :, 1] = PS_rest_gas.return_all_sigmas()[1] # EC cross section
+    sigmas_PS[i, :, 2] = PS_rest_gas.return_all_sigmas()[0] + PS_rest_gas.return_all_sigmas()[1] # total cross section
 
 
     # Calculate lifetimes and cross sections for SPS
@@ -68,9 +82,52 @@ for i, projectile in enumerate(projectile_data.T.columns):
 
     SPS_rest_gas.set_projectile_data(projectile_data_SPS)  
     tau_values_SPS[i] = SPS_rest_gas.calculate_total_lifetime_full_gas()
+    sigmas_SPS[i, :, 0] = SPS_rest_gas.return_all_sigmas()[0] # EL cross section
+    sigmas_SPS[i, :, 1] = SPS_rest_gas.return_all_sigmas()[1] # EC cross section
+    sigmas_SPS[i, :, 2] = SPS_rest_gas.return_all_sigmas()[0] + SPS_rest_gas.return_all_sigmas()[1] # total cross section
     
+
+# Make dataframes out of cross sections 
+df_sigmas_EL_LEIR = pd.DataFrame(sigmas_LEIR[:, :, 0])
+df_sigmas_EC_LEIR = pd.DataFrame(sigmas_LEIR[:, :, 1])
+df_sigmas_tot_LEIR = pd.DataFrame(sigmas_LEIR[:, :, 2])    
+
+df_sigmas_EL_PS = pd.DataFrame(sigmas_PS[:, :, 0])
+df_sigmas_EC_PS = pd.DataFrame(sigmas_PS[:, :, 1])
+df_sigmas_tot_PS = pd.DataFrame(sigmas_PS[:, :, 2])    
+
+df_sigmas_EL_SPS = pd.DataFrame(sigmas_SPS[:, :, 0])
+df_sigmas_EC_SPS = pd.DataFrame(sigmas_SPS[:, :, 1])
+df_sigmas_tot_SPS = pd.DataFrame(sigmas_SPS[:, :, 2])    
+
+# Concatenate the dataframes and add the machine and cross section type columns
+machines = ['LEIR', 'PS', 'SPS']
+cross_section_types = ['EL', 'EC', 'Total']
+dataframes = [
+    df_sigmas_EL_LEIR, df_sigmas_EC_LEIR, df_sigmas_tot_LEIR,
+    df_sigmas_EL_PS, df_sigmas_EC_PS, df_sigmas_tot_PS,
+    df_sigmas_EL_SPS, df_sigmas_EC_SPS, df_sigmas_tot_SPS
+]
+
+# Add 
+for i, df in enumerate(dataframes):
+    df = df.set_index(projectile_data.index)
+    df.columns = gas_fractions.index
+
+    # Add the 'Machine' and 'Cross Section Type' columns
+    df['Machine'] = machines[i // len(cross_section_types)]
+    df['Cross Section Type'] = cross_section_types[i % len(cross_section_types)]
     
-#### PLOT THE DATA #######
+    # Update the dataframe in the original dataframes array
+    dataframes[i] = df
+
+# Concatenate the modified dataframes and rename columns
+df_sigma_all = pd.concat(dataframes)
+df_sigma_all.to_csv('Output/Cross_sections_all_gases_and_machines.csv')
+
+
+
+######## PLOT THE DATA ###########
 SMALL_SIZE = 12
 MEDIUM_SIZE = 15
 BIGGER_SIZE = 20
@@ -126,3 +183,22 @@ else:
     ax.legend()
     fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
     fig.savefig('Output/LEIR_PS_SPS_full_lifetime_plot_compact.png', dpi=250)
+    
+    
+# Plot the cross sections of each projectile on H2 (first column)
+bar_width = 0.25
+fig2, ax2 = plt.subplots(1, 1, figsize = (11,5))
+fig2.suptitle('Projectile cross sections on H2', fontsize=18)
+bar11 = ax2.bar(x - 1.15*bar_width, df_sigmas_EL_LEIR[:][0], bar_width, color='royalblue', label='LEIR EL') #
+bar12 = ax2.bar(x - 1.15*bar_width, df_sigmas_EC_LEIR[:][0], bar_width, color='cyan', alpha=0.8, label='LEIR EC') #
+bar21 = ax2.bar(x, df_sigmas_EL_PS[:][0], bar_width, color='coral', label='PS EL') #
+bar22 = ax2.bar(x, df_sigmas_EC_PS[:][0], bar_width, color='maroon', alpha=0.8, label='PS EC') #
+bar31 = ax2.bar(x + 1.15*bar_width, df_sigmas_EL_SPS[:][0], bar_width, color='forestgreen', label='SPS EL') #
+bar32 = ax2.bar(x + 1.15*bar_width, df_sigmas_EC_SPS[:][0], bar_width, color='lime', alpha=0.8, label='SPS EC') #
+ax2.set_yscale('log')
+ax2.set_xticks(x)
+ax2.set_xticklabels(projectile_data.index)
+ax2.set_ylabel(r"Cross section $\sigma$ [m$^{2}$]")
+ax2.legend()
+fig2.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+fig2.savefig('Output/Cross_sections_on_H2.png', dpi=250)
