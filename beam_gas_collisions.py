@@ -39,7 +39,7 @@ class beam_gas_collisions:
             self.set_projectile_data(projectile_data)
         else:
             self.exists_projetile_data = False
-            
+        self.lifetimes_are_calculated = False # state to indicate if lifetimes are calculated or not
     
     def set_projectile_data(self, projectile_data):
         """
@@ -195,7 +195,24 @@ class beam_gas_collisions:
         return sigma_electron_capture
         
     
-    #def calculate_lifetime_single_gas(self, Z_p, q, e_kin, I_p, n_0, SI_units=True)
+    def return_all_sigmas(self):
+        """
+        Return electron loss (EL) and electron capture (EC) cross sections after having calculated estimates lifetimes
+        unit is in m^2 (SI units)
+ 
+        Returns
+        -------
+        sigmas_EL 
+        sigmas_EC
+        """
+        if not self.lifetimes_are_calculated:
+            self.calculate_total_lifetime_full_gas()
+
+        # Create vectors of sigmas for electron loss and electron capture
+        sigmas_EL = np.array([self.sigma_H2_EL, self.sigma_H2O_EL, self.sigma_CO_EL, self.sigma_CH4_EL, self.sigma_CO2_EL])
+        sigmas_EC = np.array([self.sigma_H2_EC, self.sigma_H2O_EC, self.sigma_CO_EC, self.sigma_CH4_EC, self.sigma_CO2_EC])
+        return sigmas_EL, sigmas_EC
+    
     
     def calculate_total_lifetime_full_gas(self, projectile_data=None):
         """
@@ -257,6 +274,9 @@ class beam_gas_collisions:
         self.sigma_CO_EC = sigma_C_EC + sigma_O_EC
         self.sigma_CH4_EC = sigma_C_EC + 4 * sigma_H_EC
         self.sigma_CO2_EC = sigma_C_EC + 2 * sigma_O_EC        
+        
+        #
+        self.lifetimes_are_calculated = True
 
         # Estimate the EL lifetime for collision with each gas type - if no gas, set lifetime to infinity
         tau_H2_EC = 1.0/(self.sigma_H2_EC *self.n_H2*self.beta*self.c_light) if self.n_H2 else np.inf 
