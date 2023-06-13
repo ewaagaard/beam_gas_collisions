@@ -189,8 +189,8 @@ else:
 bar_width = 0.25
 fig2, ax2 = plt.subplots(1, 1, figsize = (11,5))
 fig2.suptitle('Projectile cross sections on H2', fontsize=18)
-bar11 = ax2.bar(x - 1.15*bar_width, df_sigmas_EL_LEIR[:][0], bar_width, color='royalblue', label='LEIR EL') #
-bar12 = ax2.bar(x - 1.15*bar_width, df_sigmas_EC_LEIR[:][0], bar_width, color='cyan', alpha=0.8, label='LEIR EC') #
+bar11 = ax2.bar(x - 1.15*bar_width, df_sigmas_EL_LEIR[:][0], bar_width, hatch='//', color='royalblue', label='LEIR EL') #
+bar12 = ax2.bar(x - 1.15*bar_width, df_sigmas_EC_LEIR[:][0], bar_width, color='cyan', hatch='\\',  alpha=0.65, label='LEIR EC') #
 bar21 = ax2.bar(x, df_sigmas_EL_PS[:][0], bar_width, color='coral', label='PS EL') #
 bar22 = ax2.bar(x, df_sigmas_EC_PS[:][0], bar_width, color='maroon', alpha=0.8, label='PS EC') #
 bar31 = ax2.bar(x + 1.15*bar_width, df_sigmas_EL_SPS[:][0], bar_width, color='forestgreen', label='SPS EL') #

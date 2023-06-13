@@ -48,12 +48,20 @@ class beam_gas_collisions:
             q : charge of projectile.
             e_kin : collision energy in MeV/u.
             I_p : first ionization potential of projectile in keV
+            n_0: principal quantum number
             beta: relativistic beta 
         """
         self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
         self.exists_projetile_data = True
         
         
+    def beta(self, gamma):
+        """
+        Relativistic beta factor from gamma factor 
+        """
+        return np.sqrt(1 - 1/gamma**2)
+        
+    
     def set_molecular_densities(self, molecular_fraction_array):
         """
         Parameters
