@@ -15,7 +15,7 @@ sys.path.append("..")
 
 from beam_gas_collisions import beam_gas_collisions
 
-test_data_read_from_Graham = False
+test_data_read_from_Graham = True
 
 # Initiate beam-gas class object
 Pb_EL_checks = beam_gas_collisions()
@@ -128,9 +128,12 @@ groups = df.groupby('q_ref')
 count = 1.0
 
 if test_data_read_from_Graham:
-    q_ref_labels = q_ref.flip
+    q_ref_labels = np.flip(q_ref)
+    save_str = 'Graham_test_data'
 else:
     q_ref_labels = np.array([52., 54., 55., 59.])
+    save_str = 'Weber_test_data'
+    
 x = np.arange(1, len(q_ref_labels) +1 )
 #error_bars = np.zeros(len(Z_ref))
 
@@ -179,4 +182,4 @@ ax.set_ylabel(r'$\sigma_{EL}$')
 #ax.set_title('Comparison of Calculated and Measured Sigmas')
 
 fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-fig.savefig('Output/Comparing_Pb_EL_cross_sections_new.png', dpi=250)
+fig.savefig('Output/Comparing_Pb_EL_cross_sections_{}.png'.format(save_str), dpi=250)
