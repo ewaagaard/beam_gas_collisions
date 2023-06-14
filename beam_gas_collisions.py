@@ -228,19 +228,47 @@ class beam_gas_collisions:
         sigmas_EC = np.array([self.sigma_H2_EC, self.sigma_H2O_EC, self.sigma_CO_EC, self.sigma_CH4_EC, self.sigma_CO2_EC])
         return sigmas_EL, sigmas_EC
     
+    def calculate_lifetime_on_single_gas(self, p, Z_t, projectile_data=None, atomicity=1):
+        """
+        Calculates beam lifetime from electron loss and electron capture from beam gas
+        interactions with a single gas 
+        
+        Parameters
+        ----------
+        p : pressure in beam pipe in millibar 
+        Z_t : Z of target
+        projectile_data: optional, not needed if projectile data is already initiated 
+        atomicity : number of atoms per molecule
+
+        Returns
+        -------
+        Total lifetime tau in seconds
+        """  
+        # Find molecular density from pressure
+        p_SI =  p*1e2 # convert mbar to Pascal (SI) 
+        n = p_SI / (self.K * self.T)
+        
+        # Cross sections
+        sigma_EL = atomicity * self.calculate_sigma_electron_loss(Z_t, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
+        e_kin_keV = self.e_kin * 1e3 # convert MeV to keV 
+        sigma_EC = atomicity * self.calculate_sigma_electron_capture(Z_t, self.q, e_kin_keV, SI_units=True)
+    
+        # Lifetimes
+        tau_EL = 1.0/(sigma_EL * n * self.beta * self.c_light)
+        tau_EC = 1.0/(sigma_EC * n * self.beta * self.c_light)
+        tau_tot_inv = 1/tau_EL + 1/tau_EC
+        tau_tot = 1/tau_tot_inv 
+        return tau_tot
+    
     
     def calculate_total_lifetime_full_gas(self, projectile_data=None):
         """
         Calculates beam lifetime contributions for electron loss and electron capture from beam gas
-        interactions with all 
+        interactions with all compound gases
         
         Parameters
         ----------
-        Z_p : Z of projectile
-        q : charge of projectile
-        e_kin : collision energy in MeV/u.
-        I_p : first ionization potential of projectile in keV
-        n_0 : principle quantum number of outermost projectile electron 
+        projectile_data: optional, not needed if projectile data is already initiated 
         
         Returns
         -------
