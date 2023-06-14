@@ -12,6 +12,9 @@ sys.path.append("..")
 
 from beam_gas_collisions import beam_gas_collisions
 
+# Define approximate relevant energy range for SPS injection 
+E_kin_min = 5.0
+E_kin_max = 13.0
 
 # Load data 
 m_e = 0.510998950e6  # electron mass in eV
@@ -124,7 +127,7 @@ d_n = 0.1
 d_tau = np.sqrt(d_sigma**2 + d_n**2)
     
 ######## PLOT THE DATA ###########
-SMALL_SIZE = 12
+SMALL_SIZE = 10.5
 MEDIUM_SIZE = 15
 BIGGER_SIZE = 20
 plt.rcParams["font.family"] = "serif"
@@ -143,6 +146,7 @@ ax.errorbar(energies_kin_inj, tau_values_SPS_Pb54, yerr=0.5*tau_values_SPS_Pb54,
 ax.errorbar(energies_kin_inj, tau_values_SPS_Pb80, yerr=0.5*tau_values_SPS_Pb80, fmt='*', ms=9, capsize=4, color='darkgreen', label='Pb80+ semi-empirical')
 #ax.plot(energies_kin_inj, tau_values_SPS_Pb81, color='gold')
 ax.errorbar(energies_kin_inj, tau_values_SPS_Pb81, yerr=0.5*tau_values_SPS_Pb81, fmt='*', ms=9, capsize=4, color='darkred', label='Pb81+ semi-empirical')
+ax.axvspan(E_kin_min, E_kin_max, color='green', alpha=0.2, label='Relevant SPS injection energy')
 ax.set_yscale('log')
 ax.set_xscale('log')
 ax.set_xlim(1, 5200)
