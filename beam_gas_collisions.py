@@ -9,7 +9,7 @@ class beam_gas_collisions:
     Class to calculate the electron loss and electron capture cross section of rest gas collisions from 
     semi-empirical Dubois, Shevelko and Schlachter formulae 
     """
-    def __init__(self, p, molecular_fraction_array, projectile_data=None,T=298):
+    def __init__(self, p=None, molecular_fraction_array=None, projectile_data=None,T=298):
         """
         Parameters
         ----------
@@ -31,10 +31,15 @@ class beam_gas_collisions:
         self.K = constants.Boltzmann
         self.T = T # temperature in Kelvin 
         self.c_light = constants.c
-        self.p = p*1e2 # convert mbar to Pascal
         
-        # Initiate data if available
-        self.set_molecular_densities(molecular_fraction_array)
+        ### Set attributes if provided ###
+        if p is not None:
+            self.p = p*1e2 # convert mbar to Pascal  
+        if molecular_fraction_array is not None:
+            self.set_molecular_densities(molecular_fraction_array)
+            self.molecular_densities_are_set = True
+        else:
+            self.molecular_densities_are_set = False
         if projectile_data is not None:
             self.set_projectile_data(projectile_data)
         else:
@@ -82,6 +87,8 @@ class beam_gas_collisions:
         -------
         None.
         """
+        if not self.p:
+            raise ValueError('Have to provide pressure data!')   
         if sum(molecular_fraction_array) != 1.0:
             raise ValueError('Molecular fraction does not sum up!')
         if not np.all(molecular_fraction_array >= 0):
@@ -239,11 +246,13 @@ class beam_gas_collisions:
         -------
         Total lifetime tau in seconds
         """
+        if not self.molecular_densities_are_set:
+            raise ValueError('Have to provide molecular composition data!') 
         if not self.exists_projetile_data:
             if projectile_data is not None:
                 self.set_projectile_data(projectile_data)
             else:
-                raise ValueError('Have to provide projectile data!')
+                raise ValueError('Have to provide projectile data!') 
         
         # Atomic numbers of relevant gasess
         Z_H = 1.0
