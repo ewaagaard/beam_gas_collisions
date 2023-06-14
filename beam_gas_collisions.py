@@ -9,7 +9,7 @@ class beam_gas_collisions:
     Class to calculate the electron loss and electron capture cross section of rest gas collisions from 
     semi-empirical Dubois, Shevelko and Schlachter formulae 
     """
-    def __init__(self, p=None, molecular_fraction_array=None, projectile_data=None,T=298):
+    def __init__(self, p=None, molecular_fraction_array=None, projectile_data=None, provide_beta=True, T=298):
         """
         Parameters
         ----------
@@ -41,12 +41,13 @@ class beam_gas_collisions:
         else:
             self.molecular_densities_are_set = False
         if projectile_data is not None:
-            self.set_projectile_data(projectile_data)
+            self.set_projectile_data(projectile_data, provide_beta)
         else:
             self.exists_projetile_data = False
         self.lifetimes_are_calculated = False # state to indicate if lifetimes are calculated or not
     
-    def set_projectile_data(self, projectile_data):
+    
+    def set_projectile_data(self, projectile_data, provide_beta=True):
         """
         Sets the projectile data:
             Z_p : Z of projectile
@@ -54,13 +55,35 @@ class beam_gas_collisions:
             e_kin : collision energy in MeV/u.
             I_p : first ionization potential of projectile in keV
             n_0: principal quantum number
-            beta: relativistic beta 
+            Can either provide: beta or m
+                beta: relativistic beta 
+                m: mass of atom in Dalton (atomic unit)
         """
-        self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
+        if provide_beta:
+            self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
+            self.exists_beta = True
+        else:
+            self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.atomic_mass_in_u = projectile_data
+            self.exists_beta = False
         self.exists_projetile_data = True
         
         
-    def beta(self, gamma):
+    def beta_from_mass(self):
+        """
+        Calculate relativistic beta factor from projectile data if only mass is given
+        """
+        if not self.exists_projetile_data:
+            raise ValueError('Have to provide projectile data!') 
+            
+        # Calculate mass of ion in electron volt 
+        self.mass_in_u_stripped = self.atomic_mass_in_u - (self.Z_p - self.q) * constants.physical_constants['electron mass in u'][0] 
+        self.mass_in_eV =  self.mass_in_u_stripped * constants.physical_constants['atomic mass unit-electron volt relationship'][0]
+        self.E_tot = self.mass_in_eV + 1e6*self.e_kin * self.mass_in_u_stripped# total kinetic energy in eV per particle at injection
+        self.gamma = self.E_tot/self.mass_in_eV
+        self.beta = self.beta_from_gamma(self.gamma)
+    
+    
+    def beta_from_gamma(self, gamma):
         """
         Relativistic beta factor from gamma factor 
         """
@@ -276,6 +299,8 @@ class beam_gas_collisions:
         """
         if not self.molecular_densities_are_set:
             raise ValueError('Have to provide molecular composition data!') 
+        if not self.exists_beta:
+            raise ValueError('Beta has to be provided!') 
         if not self.exists_projetile_data:
             if projectile_data is not None:
                 self.set_projectile_data(projectile_data)
