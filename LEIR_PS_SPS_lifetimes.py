@@ -35,9 +35,9 @@ tau_values_SPS = np.zeros(len(projectile_data.T.columns))
 
 # Rows represent each projectile, columns each gas constituent
 # third dimension stacks 3 quantities: EL cross section, EC cross section and total cross section
-sigmas_LEIR = np.zeros([len(projectile_data.T.columns), len(gas_fractions), 3])
-sigmas_PS = np.zeros([len(projectile_data.T.columns), len(gas_fractions), 3])
-sigmas_SPS = np.zeros([len(projectile_data.T.columns), len(gas_fractions), 3])
+sigmas_LEIR = np.zeros([len(projectile_data.T.columns), np.count_nonzero(gas_fractions['LEIR']), 3])
+sigmas_PS = np.zeros([len(projectile_data.T.columns), np.count_nonzero(gas_fractions['PS']), 3])
+sigmas_SPS = np.zeros([len(projectile_data.T.columns), np.count_nonzero(gas_fractions['SPS']), 3])
 
 
 # Iterate over the different projectiles 
@@ -109,13 +109,15 @@ dataframes = [
     df_sigmas_EL_SPS, df_sigmas_EC_SPS, df_sigmas_tot_SPS
 ]
 
-# Add 
+# Add machine and cross section type 
 for i, df in enumerate(dataframes):
+    
+    machine = machines[i // len(cross_section_types)]
     df = df.set_index(projectile_data.index)
-    df.columns = gas_fractions.index
+    df.columns = gas_fractions[machine][gas_fractions[machine] > 0.].index # gas_fractions.index
 
     # Add the 'Machine' and 'Cross Section Type' columns
-    df['Machine'] = machines[i // len(cross_section_types)]
+    df['Machine'] = machine
     df['Cross Section Type'] = cross_section_types[i % len(cross_section_types)]
     
     # Update the dataframe in the original dataframes array
