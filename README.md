@@ -9,7 +9,7 @@ $$
 
 and $\sigma$ is the rest gas collision cross section, $\beta$ is the projectile relativistic beta factor, $c$ is the speed of light and $n$ is the molecular density in the beam pipe. The dominant contributions to the cross section $\sigma$ at PS and SPS ion beam energies are **electron capture (EC)** via pair production and **electron loss (EL)** via electron and nucleus impact ionization. Electron capture can be modelled with the [Schlachter formula](https://link.aps.org/doi/10.1103/PhysRevA.27.3372). We estimate the electron loss cross section with a semi-empirical formula combining studies from [Dubois](https://link.aps.org/doi/10.1103/PhysRevA.84.022702) and [Shevelko](https://www.sciencedirect.com/science/article/pii/S0168583X11003272).
 
-The `beam_gas_collisions` class to represent the beam-gas collisions contains the structures and parameters to calculate the EC and EL cross sections. Assuming that no other charge-changing processes are relevant at these energies, also the beam lifetimes $\tau$ can be calculated. The class can be initiated without any input paramters, or providing pressure `p` in mbar and the molecular fractions of H2, H2O, CO, CH4 and CO2 to directly find the molecular density of each compound in the accelerator.  
+The `beam_gas_collisions` class to represent the beam-gas collisions contains the structures and parameters to calculate the EC and EL cross sections. Assuming that no other charge-changing processes are relevant at these energies, also the beam lifetimes $\tau$ can be calculated. The class can be initiated without any input paramters, or providing pressure `p` in mbar and the molecular fractions of H2, H2O, CO, CH4, CO2, He, O2 and Ar to directly find the molecular density of each compound in the accelerator.  
 
 ### Instantiating the class
 
@@ -24,6 +24,13 @@ pressure_data = pd.read_csv('Data/Pressure_data.csv', index_col=0).T
 # Instantiate PS class object
 PS_rest_gas =  beam_gas_collisions(pressure_data['PS'].values[0], gas_fractions['PS'].values)
 ```
+The class object can also be instantiated without providing pressure or gas to calculate single cross sections or lifetimes on a particular gas. The molecular densities and pressure (in mbar) can then be instantiated later:
+
+```python
+PS_rest_gas =  beam_gas_collisions()
+PS_rest_gas.set_molecular_densities(gas_fractions['PS'].values, p = 5e-10)
+```
+
 ### Calculating the cross sections
 
 The respective EL and EC cross sections can be calculated from
