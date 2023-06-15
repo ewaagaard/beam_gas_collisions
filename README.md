@@ -55,7 +55,6 @@ or providing the mass in Dalton and calculate the beta: `projectile_data = Z_p, 
 ```python
 projectile_data = [Z_p, q, e_kin, I_p, n_0, atomic_mass_in_u]
 PS_rest_gas.set_projectile_data(projectile_data, provided_beta=False)
-PS_rest_gas.beta_from_mass()
 tau = PS_rest_gas.calculate_total_lifetime_full_gas()
 ```
 
