@@ -9,7 +9,7 @@ class beam_gas_collisions:
     Class to calculate the electron loss and electron capture cross section of rest gas collisions from 
     semi-empirical Dubois, Shevelko and Schlachter formulae 
     """
-    def __init__(self, p=None, molecular_fraction_array=None, projectile_data=None, provide_beta=True, T=298):
+    def __init__(self, p=None, molecular_fraction_array=None, projectile_data=None, provided_beta=True, T=298):
         """
         Parameters
         ----------
@@ -21,6 +21,9 @@ class beam_gas_collisions:
             x_CO : fraction of CO
             x_CH4 : fraction of CH4
             x_CO2 : fraction of CO2
+            x_He : fraction of He
+            x_O2 : fraction of O2
+            x_Ar : fraction of Ar
         T : Temperature in kelvin. The default is 298.
         """
         
@@ -41,13 +44,13 @@ class beam_gas_collisions:
         else:
             self.molecular_densities_are_set = False
         if projectile_data is not None:
-            self.set_projectile_data(projectile_data, provide_beta)
+            self.set_projectile_data(projectile_data, provided_beta)
         else:
             self.exists_projetile_data = False
         self.lifetimes_are_calculated = False # state to indicate if lifetimes are calculated or not
     
     
-    def set_projectile_data(self, projectile_data, provide_beta=True):
+    def set_projectile_data(self, projectile_data, provided_beta=True):
         """
         Sets the projectile data:
             Z_p : Z of projectile
@@ -59,13 +62,15 @@ class beam_gas_collisions:
                 beta: relativistic beta 
                 m: mass of atom in Dalton (atomic unit)
         """
-        if provide_beta:
+        if provided_beta:
             self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
             self.exists_beta = True
+            self.exists_projetile_data = True
         else:
             self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.atomic_mass_in_u = projectile_data
-            self.exists_beta = False
-        self.exists_projetile_data = True
+            self.exists_projetile_data = True
+            self.beta_from_mass()
+            self.exists_beta = True
         
         
     def beta_from_mass(self):
@@ -81,6 +86,7 @@ class beam_gas_collisions:
         self.E_tot = self.mass_in_eV + 1e6*self.e_kin * self.mass_in_u_stripped# total kinetic energy in eV per particle at injection
         self.gamma = self.E_tot/self.mass_in_eV
         self.beta = self.beta_from_gamma(self.gamma)
+        
     
     
     def beta_from_gamma(self, gamma):
@@ -90,33 +96,41 @@ class beam_gas_collisions:
         return np.sqrt(1 - 1/gamma**2)
         
     
-    def set_molecular_densities(self, molecular_fraction_array):
+    def set_molecular_densities(self, molecular_fraction_array, p=None):
         """
         Parameters
         ----------
         molecular_fraction_array: contains
-        x_H2 : fraction of H2
-        x_H2O : fraction of H2O
-        x_CO : fraction of CO
-        x_CH4 : fraction of CH4
-        x_CO2 : fraction of CO2
+            x_H2 : fraction of H2
+            x_H2O : fraction of H2O
+            x_CO : fraction of CO
+            x_CH4 : fraction of CH4
+            x_CO2 : fraction of CO2
+            x_He : fraction of He
+            x_O2 : fraction of O2
+            x_Ar : fraction of Ar
 
         Raises
         ------
         ValueError
             If fraction of gases does not sum up to 1.0
-
+        ValueError
+            If pressure data is not provided when the 'p' attribute is not set
+        
         Returns
         -------
         None.
         """
-        if not self.p:
-            raise ValueError('Have to provide pressure data!')   
+        # Check if 'p' attribute exists
+        if p is None and not hasattr(self, 'p'):
+            raise ValueError('Have to provide pressure data!')
         if sum(molecular_fraction_array) != 1.0:
             raise ValueError('Molecular fraction does not sum up!')
         if not np.all(molecular_fraction_array >= 0):
             raise ValueError('Cannot set negative molecular fraction')
-        x_H2, x_H2O, x_CO, x_CH4, x_CO2 = molecular_fraction_array    
+            
+        # Set the molecular fractions
+        x_H2, x_H2O, x_CO, x_CH4, x_CO2, x_He, x_O2, x_Ar = molecular_fraction_array    
         
         # Calculate the molecular density for each gas 
         self.n_H2 = self.p * x_H2 / (self.K * self.T)
@@ -124,6 +138,19 @@ class beam_gas_collisions:
         self.n_CO = self.p * x_CO / (self.K * self.T)
         self.n_CH4 = self.p * x_CH4 / (self.K * self.T)
         self.n_CO2 = self.p * x_CO2 / (self.K * self.T)
+        self.n_He = self.p * x_He / (self.K * self.T)
+        self.n_O2 = self.p * x_O2 / (self.K * self.T)
+        self.n_Ar = self.p * x_Ar / (self.K * self.T)
+
+        # Contain these into one array
+        self.fractions = [self.n_H2,
+                          self.n_H2O,
+                          self.n_CO,
+                          self.n_CH4,
+                          self.n_CO2,
+                          self.n_He,
+                          self.n_O2,
+                          self.n_Ar]
 
 
     def dubois(self, Z, Z_p, q, e_kin, I_p):
@@ -219,7 +246,7 @@ class beam_gas_collisions:
         ----------
         Z : Z of target
         q : charge of projectile
-        e_kin_keV : collision energy in MeV/u.
+        e_kin_keV : collision energy in keV/u.
       
         Returns
         -------
@@ -236,7 +263,7 @@ class beam_gas_collisions:
     def return_all_sigmas(self):
         """
         Return electron loss (EL) and electron capture (EC) cross sections after having calculated estimates lifetimes
-        unit is in m^2 (SI units)
+        unit is in m^2 (SI units), for rest gases with non-zero contribution 
  
         Returns
         -------
@@ -246,10 +273,46 @@ class beam_gas_collisions:
         if not self.lifetimes_are_calculated:
             self.calculate_total_lifetime_full_gas()
 
-        # Create vectors of sigmas for electron loss and electron capture
-        sigmas_EL = np.array([self.sigma_H2_EL, self.sigma_H2O_EL, self.sigma_CO_EL, self.sigma_CH4_EL, self.sigma_CO2_EL])
-        sigmas_EC = np.array([self.sigma_H2_EC, self.sigma_H2O_EC, self.sigma_CO_EC, self.sigma_CH4_EC, self.sigma_CO2_EC])
-        return sigmas_EL, sigmas_EC
+        # All sigmas for electron loss and electron capture
+        sigmas_EL = np.array([self.sigma_H2_EL, 
+                              self.sigma_H2O_EL, 
+                              self.sigma_CO_EL, 
+                              self.sigma_CH4_EL, 
+                              self.sigma_CO2_EL, 
+                              self.sigma_He_EL, 
+                              self.sigma_O2_EL,
+                              self.sigma_Ar_EL])
+        
+        sigmas_EC = np.array([self.sigma_H2_EC, 
+                              self.sigma_H2O_EC, 
+                              self.sigma_CO_EC, 
+                              self.sigma_CH4_EC, 
+                              self.sigma_CO2_EC,
+                              self.sigma_He_EC, 
+                              self.sigma_O2_EC,
+                              self.sigma_Ar_EC])
+
+        # Create a list to store the non-zero fractions and corresponding cross sections
+        non_zero_fractions = []
+        non_zero_sigmas_EL = []
+        non_zero_sigmas_EC = []
+
+        # Iterate over the fractions and cross sections
+        for fraction, sigma_EL, sigma_EC in zip(self.fractions, sigmas_EL, sigmas_EC):
+            # Check if the fraction is non-zero
+            if fraction != 0:
+                # Append the non-zero fraction and corresponding cross sections to the respective lists
+                non_zero_fractions.append(fraction)
+                non_zero_sigmas_EL.append(sigma_EL)
+                non_zero_sigmas_EC.append(sigma_EC)
+        
+        # Convert the non-zero cross sections to numpy arrays
+        non_zero_sigmas_EL = np.array(non_zero_sigmas_EL)
+        non_zero_sigmas_EC = np.array(non_zero_sigmas_EC)
+
+        # Return the non-zero fractions and cross sections
+        return non_zero_sigmas_EL, non_zero_sigmas_EC, non_zero_fractions
+    
     
     def calculate_lifetime_on_single_gas(self, p, Z_t, projectile_data=None, atomicity=1):
         """
@@ -309,58 +372,79 @@ class beam_gas_collisions:
         
         # Atomic numbers of relevant gasess
         Z_H = 1.0
-        Z_O = 8.0
+        Z_He = 2.0
         Z_C = 6.0
+        Z_O = 8.0
+        Z_Ar = 18.0
                 
         # Calculate the electron loss (EL) cross sections from all atoms present in gas 
         sigma_H_EL = self.calculate_sigma_electron_loss(Z_H, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
-        sigma_O_EL = self.calculate_sigma_electron_loss(Z_O, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
+        sigma_He_EL = self.calculate_sigma_electron_loss(Z_He, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
         sigma_C_EL = self.calculate_sigma_electron_loss(Z_C, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
-                
-        # Estimate molecular EL cross section from additivity rule
+        sigma_O_EL = self.calculate_sigma_electron_loss(Z_O, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
+        sigma_Ar_EL = self.calculate_sigma_electron_loss(Z_Ar, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
+
+        # Estimate molecular EL cross section from additivity rule, multiplying with atomicity 
         # Eq (5) in https://journals.aps.org/pra/abstract/10.1103/PhysRevA.67.022706
         self.sigma_H2_EL = 2.0 * sigma_H_EL
+        self.sigma_He_EL = sigma_He_EL
         self.sigma_H2O_EL = 2.0 * sigma_H_EL + sigma_O_EL
         self.sigma_CO_EL = sigma_C_EL + sigma_O_EL
         self.sigma_CH4_EL = sigma_C_EL + 4 * sigma_H_EL
-        self.sigma_CO2_EL = sigma_C_EL + 2 * sigma_O_EL 
+        self.sigma_CO2_EL = sigma_C_EL + 2 * sigma_O_EL
+        self.sigma_O2_EL =  2 * sigma_O_EL
+        self.sigma_Ar_EL = sigma_Ar_EL
         
         # Estimate the EL lifetime for collision with each gas type - if no gas, set lifetime to infinity
-        tau_H2_EL = 1.0/(self.sigma_H2_EL *self.n_H2*self.beta*self.c_light) if self.n_H2 else np.inf 
+        tau_H2_EL = 1.0/(self.sigma_H2_EL *self.n_H2*self.beta*self.c_light) if self.n_H2 else np.inf
+        tau_He_EL = 1.0/(self.sigma_He_EL *self.n_He*self.beta*self.c_light) if self.n_He else np.inf 
         tau_H2O_EL = 1.0/(self.sigma_H2O_EL *self.n_H2O*self.beta*self.c_light) if self.n_H2O else np.inf 
         tau_CO_EL = 1.0/(self.sigma_CO_EL *self.n_CO*self.beta*self.c_light) if self.n_CO else np.inf 
         tau_CH4_EL = 1.0/(self.sigma_CH4_EL *self.n_CH4*self.beta*self.c_light) if self.n_CH4 else np.inf 
-        tau_CO2_EL = 1.0/(self.sigma_CO2_EL *self.n_CO2*self.beta*self.c_light) if self.n_CO2 else np.inf 
+        tau_CO2_EL = 1.0/(self.sigma_CO2_EL *self.n_CO2*self.beta*self.c_light) if self.n_CO2 else np.inf
+        tau_O2_EL = 1.0/(self.sigma_O2_EL *self.n_O2*self.beta*self.c_light) if self.n_O2 else np.inf
+        tau_Ar_EL = 1.0/(self.sigma_Ar_EL *self.n_Ar*self.beta*self.c_light) if self.n_Ar else np.inf
         
         # Estimate the electron capture (EC) cross sections from all atoms present in gas 
         e_kin_keV = self.e_kin * 1e3 # convert MeV to keV 
         sigma_H_EC = self.calculate_sigma_electron_capture(Z_H, self.q, e_kin_keV, SI_units=True)
-        sigma_O_EC = self.calculate_sigma_electron_capture(Z_O, self.q, e_kin_keV, SI_units=True)
+        sigma_He_EC = self.calculate_sigma_electron_capture(Z_He, self.q, e_kin_keV, SI_units=True)
         sigma_C_EC = self.calculate_sigma_electron_capture(Z_C, self.q, e_kin_keV, SI_units=True)
+        sigma_O_EC = self.calculate_sigma_electron_capture(Z_O, self.q, e_kin_keV, SI_units=True)
+        sigma_Ar_EC = self.calculate_sigma_electron_capture(Z_Ar, self.q, e_kin_keV, SI_units=True)
 
         # Also calculate the molecular EC cross section
         self.sigma_H2_EC = 2.0 * sigma_H_EC
+        self.sigma_He_EC = sigma_He_EC
         self.sigma_H2O_EC = 2.0 * sigma_H_EC + sigma_O_EC
         self.sigma_CO_EC = sigma_C_EC + sigma_O_EC
         self.sigma_CH4_EC = sigma_C_EC + 4 * sigma_H_EC
-        self.sigma_CO2_EC = sigma_C_EC + 2 * sigma_O_EC        
+        self.sigma_CO2_EC = sigma_C_EC + 2 * sigma_O_EC
+        self.sigma_O2_EC =  2 * sigma_O_EC     
+        self.sigma_Ar_EC = sigma_Ar_EC
         
-        #
+        # Flag for calculated lifetimes
         self.lifetimes_are_calculated = True
 
         # Estimate the EL lifetime for collision with each gas type - if no gas, set lifetime to infinity
-        tau_H2_EC = 1.0/(self.sigma_H2_EC *self.n_H2*self.beta*self.c_light) if self.n_H2 else np.inf 
+        tau_H2_EC = 1.0/(self.sigma_H2_EC *self.n_H2*self.beta*self.c_light) if self.n_H2 else np.inf
+        tau_He_EC = 1.0/(self.sigma_He_EC *self.n_He*self.beta*self.c_light) if self.n_He else np.inf 
         tau_H2O_EC = 1.0/(self.sigma_H2O_EC *self.n_H2O*self.beta*self.c_light) if self.n_H2O else np.inf 
         tau_CO_EC = 1.0/(self.sigma_CO_EC *self.n_CO*self.beta*self.c_light) if self.n_CO else np.inf 
         tau_CH4_EC = 1.0/(self.sigma_CH4_EC *self.n_CH4*self.beta*self.c_light) if self.n_CH4 else np.inf 
-        tau_CO2_EC = 1.0/(self.sigma_CO2_EC *self.n_CO2*self.beta*self.c_light) if self.n_CO2 else np.inf 
+        tau_CO2_EC = 1.0/(self.sigma_CO2_EC *self.n_CO2*self.beta*self.c_light) if self.n_CO2 else np.inf
+        tau_O2_EC = 1.0/(self.sigma_O2_EC *self.n_O2*self.beta*self.c_light) if self.n_O2 else np.inf
+        tau_Ar_EC = 1.0/(self.sigma_Ar_EC *self.n_Ar*self.beta*self.c_light) if self.n_Ar else np.inf 
 
         # Calculate the total cross section
         tau_tot_inv = 1/tau_H2_EL + 1/tau_H2_EC \
+                    + 1/tau_He_EL + 1/tau_He_EC \
                     + 1/tau_H2O_EL + 1/tau_H2O_EC \
                     + 1/tau_CO_EL + 1/tau_CO_EC \
                     + 1/tau_CH4_EL + 1/tau_CH4_EC \
-                    + 1/tau_CO2_EL + 1/tau_CO2_EC
+                    + 1/tau_CO2_EL + 1/tau_CO2_EC \
+                    + 1/tau_O2_EL + 1/tau_O2_EC \
+                    + 1/tau_Ar_EL + 1/tau_Ar_EC
         tau_tot = 1/tau_tot_inv
         
         return tau_tot 
