@@ -79,9 +79,9 @@ for i, E_kin_EC in enumerate(EC_energy_range):
 
 
 ######## PLOT THE DATA ###########
-SMALL_SIZE = 10.5
-MEDIUM_SIZE = 15
-BIGGER_SIZE = 20
+SMALL_SIZE = 16
+MEDIUM_SIZE = 19
+BIGGER_SIZE = 26
 plt.rcParams["font.family"] = "serif"
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=BIGGER_SIZE)    # fontsize of the axes title
@@ -129,10 +129,14 @@ ax3.set_yscale('log')
 ax1.set_ylim(1e-20, 1e-14)
 ax2.set_ylim(1e-20, 1e-14)
 ax3.set_ylim(1e-20, 1e-14)
+ax1.set_xlim(1e-2, 1e4)
+ax2.set_xlim(1e-2, 1e4)
+ax3.set_xlim(1e-2, 1e4)
 ax1.legend()
 ax2.legend()
 ax3.legend()
 fig2.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+fig2.savefig('Output/U28_EC_EL_cross_section_comparison_plot.png', dpi=250)
 
 # Generate transparent image to compare with Shevelko cross section plot 
 if also_generate_transparent_image:
