@@ -127,6 +127,8 @@ for i, df in enumerate(dataframes):
 df_sigma_all = pd.concat(dataframes)
 df_sigma_all.to_csv('Output/Cross_sections_all_gases_and_machines.csv')
 
+# Make plot with gas fractions for 
+gas_fractions_data = gas_fractions.loc[(gas_fractions!=0).any(axis=1)] 
 
 
 ######## PLOT THE DATA ###########
@@ -204,3 +206,21 @@ ax2.set_ylabel(r"Cross section $\sigma$ [m$^{2}$]")
 ax2.legend()
 fig2.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 fig2.savefig('Output/Cross_sections_on_H2.png', dpi=250)
+
+
+# Make plot of different gas fractions
+x3 = np.arange(len(gas_fractions_data.index))
+fig3, ax3 = plt.subplots(1, 1, figsize = (11,5))
+bar13 = ax3.bar(x3 - 1.15*bar_width, gas_fractions_data['LEIR'], bar_width, color='cyan', label='LEIR: P = {:.1e} mbar'.format(pressure_data['LEIR'].values[0])) #
+bar23 = ax3.bar(x3, gas_fractions_data['PS'], bar_width, color='red', label='PS:     P = {:.1e} mbar'.format(pressure_data['PS'].values[0])) #
+bar33 = ax3.bar(x3 + 1.15*bar_width, gas_fractions_data['SPS'], bar_width, color='forestgreen', label='SPS:   P = {:.1e} mbar'.format(pressure_data['SPS'].values[0])) #
+ax3.bar_label(bar13, labels=[f'{e:,.1e}'.replace('+0', '') for e in gas_fractions_data['LEIR']], padding=3, color='black', fontsize=9) 
+ax3.bar_label(bar23, labels=[f'{e:,.1e}'.replace('+0', '') for e in gas_fractions_data['PS']], padding=3, color='black', fontsize=9) 
+ax3.bar_label(bar33, labels=[f'{e:,.1e}'.replace('+0', '') for e in gas_fractions_data['SPS']], padding=3, color='black', fontsize=9) 
+ax3.set_xticks(x3)
+ax3.set_xticklabels(gas_fractions_data.index)
+ax3.set_ylabel(r"Rest gas fraction")
+ax3.legend()
+#ax3.set_yscale('log')
+fig3.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+fig3.savefig('Output/LEIR_PS_SPS_gas_composition.png', dpi=250)
