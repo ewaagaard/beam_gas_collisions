@@ -224,3 +224,21 @@ ax3.legend()
 #ax3.set_yscale('log')
 fig3.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 fig3.savefig('Output/LEIR_PS_SPS_gas_composition.png', dpi=250)
+
+
+# Make lifetime plot of only Pb54+
+fig4, ax4 = plt.subplots(1, 1, figsize = (7,5))
+bar41 = ax4.bar(x[-1] - 1.15*bar_width, tau_values_LEIR[-1], bar_width, color='cyan', label='LEIR') #
+bar42 = ax4.bar(x[-1], tau_values_PS[-1], bar_width, color='red', label='PS') #
+bar43 = ax4.bar(x[-1] + 1.15*bar_width, tau_values_SPS[-1], bar_width, color='forestgreen', label='SPS') #
+ax4.bar_label(bar41, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_LEIR[-1:]], padding=3, color='black', fontsize=12) 
+ax4.bar_label(bar42, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_PS[-1:]], padding=3, color='black', fontsize=12) 
+ax4.bar_label(bar43, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_SPS[-1:]], padding=3, color='black', fontsize=12) 
+ax4.set_yscale('log')
+#ax4.set_xticks(x[-1])
+ax4.set_xticklabels(['Pb'])
+ax4.set_ylabel(r"Lifetime $\tau$ [s]")
+ax4.legend()
+ax4.set_ylim(0.1, 5e11)
+fig4.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+fig4.savefig('Output/LEIR_PS_SPS_Pb_lifetime_plot.png', dpi=250)     
