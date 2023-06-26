@@ -217,7 +217,9 @@ class beam_gas_collisions:
 
     def calculate_sigma_electron_loss(self, Z, Z_p, q, e_kin, I_p, n_0, SI_units=True):
         """
-        Calculates the electron loss cross section from the Shevelko-Dubois formulae 
+        Calculates the electron loss cross section from the Shevelko-Dubois formulae
+        - not meant for fully stripped ions, i.e. with electrons in the 1s shell
+        - if q = Z, then sets EL cross section automatically to 0
          
         Parameters
         ----------
@@ -232,7 +234,12 @@ class beam_gas_collisions:
         -------
         sigma_electron_loss : electron loss cross section in in m^2 (cm^2 if SI units is set to false)
         """
-        sigma_electron_loss = self.dubois(Z, Z_p, q, e_kin, I_p)*self.shevelko(Z_p, q, e_kin, I_p, n_0)
+        if q == Z_p:
+            sigma_electron_loss = 0.0
+            #print("Fully stripped ion: setting sigma_EL to 0 for Z_p = {} and q = {}!".format(self.Z_p, self.q))
+        else:
+            sigma_electron_loss = self.dubois(Z, Z_p, q, e_kin, I_p)*self.shevelko(Z_p, q, e_kin, I_p, n_0)
+        
         if SI_units:
             sigma_electron_loss *= 1e-4 
         return sigma_electron_loss
@@ -395,15 +402,15 @@ class beam_gas_collisions:
         self.sigma_O2_EL =  2 * sigma_O_EL
         self.sigma_Ar_EL = sigma_Ar_EL
         
-        # Estimate the EL lifetime for collision with each gas type - if no gas, set lifetime to infinity
-        tau_H2_EL = 1.0/(self.sigma_H2_EL *self.n_H2*self.beta*self.c_light) if self.n_H2 else np.inf
-        tau_He_EL = 1.0/(self.sigma_He_EL *self.n_He*self.beta*self.c_light) if self.n_He else np.inf 
-        tau_H2O_EL = 1.0/(self.sigma_H2O_EL *self.n_H2O*self.beta*self.c_light) if self.n_H2O else np.inf 
-        tau_CO_EL = 1.0/(self.sigma_CO_EL *self.n_CO*self.beta*self.c_light) if self.n_CO else np.inf 
-        tau_CH4_EL = 1.0/(self.sigma_CH4_EL *self.n_CH4*self.beta*self.c_light) if self.n_CH4 else np.inf 
-        tau_CO2_EL = 1.0/(self.sigma_CO2_EL *self.n_CO2*self.beta*self.c_light) if self.n_CO2 else np.inf
-        tau_O2_EL = 1.0/(self.sigma_O2_EL *self.n_O2*self.beta*self.c_light) if self.n_O2 else np.inf
-        tau_Ar_EL = 1.0/(self.sigma_Ar_EL *self.n_Ar*self.beta*self.c_light) if self.n_Ar else np.inf
+        # Estimate the EL lifetime for collision with each gas type - if no gas or zero EL cross section, set lifetime to infinity
+        tau_H2_EL = 1.0/(self.sigma_H2_EL *self.n_H2*self.beta*self.c_light) if self.n_H2 and self.sigma_H2_EL != 0.0 else np.inf
+        tau_He_EL = 1.0/(self.sigma_He_EL *self.n_He*self.beta*self.c_light) if self.n_He and self.sigma_He_EL != 0.0 else np.inf 
+        tau_H2O_EL = 1.0/(self.sigma_H2O_EL *self.n_H2O*self.beta*self.c_light) if self.n_H2O and self.sigma_H2O_EL != 0.0 else np.inf 
+        tau_CO_EL = 1.0/(self.sigma_CO_EL *self.n_CO*self.beta*self.c_light) if self.n_CO and self.sigma_CO_EL != 0.0 else np.inf 
+        tau_CH4_EL = 1.0/(self.sigma_CH4_EL *self.n_CH4*self.beta*self.c_light) if self.n_CH4 and self.sigma_CH4_EL != 0.0 else np.inf 
+        tau_CO2_EL = 1.0/(self.sigma_CO2_EL *self.n_CO2*self.beta*self.c_light) if self.n_CO2 and self.sigma_CO2_EL != 0.0 else np.inf
+        tau_O2_EL = 1.0/(self.sigma_O2_EL *self.n_O2*self.beta*self.c_light) if self.n_O2 and self.sigma_O2_EL != 0.0 else np.inf
+        tau_Ar_EL = 1.0/(self.sigma_Ar_EL *self.n_Ar*self.beta*self.c_light) if self.n_Ar and self.sigma_Ar_EL != 0.0 else np.inf
         
         # Estimate the electron capture (EC) cross sections from all atoms present in gas 
         e_kin_keV = self.e_kin * 1e3 # convert MeV to keV 
