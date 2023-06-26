@@ -63,4 +63,5 @@ ax.axvline(x=p0, color='purple', linestyle='-.', label='Current total BGI pressu
 ax.set_xlabel('Ar pressure [mbar]')
 ax.set_ylabel(r'Lifetime $\tau$ [s]')
 ax.legend()
+fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 fig.savefig('Output/Beamlifetime_Pb_on_Ar_in_PS.png', dpi=250)
