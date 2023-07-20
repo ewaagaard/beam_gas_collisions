@@ -6,11 +6,13 @@ Estimate lifetimes for Pb54+, Pb80+ and Pb81+ in SPS to compare with RICODE-M da
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import scipy.constants as constants
 import sys
 sys.path.append("..")
 
 from beam_gas_collisions import beam_gas_collisions
+
+# Semi-empirical formula for EL not meant for 1s shell, so in reality not relevant for Pb81+
+also_plot_Pb81 = False
 
 # Define approximate relevant energy range for SPS injection 
 E_kin_min = 5.0
@@ -127,7 +129,7 @@ d_n = 0.1
 d_tau = np.sqrt(d_sigma**2 + d_n**2)
     
 ######## PLOT THE DATA ###########
-SMALL_SIZE = 10.5
+SMALL_SIZE = 10
 MEDIUM_SIZE = 15
 BIGGER_SIZE = 20
 plt.rcParams["font.family"] = "serif"
@@ -140,12 +142,22 @@ plt.rc('legend', fontsize=SMALL_SIZE)   # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 fig, ax = plt.subplots(1, 1, figsize = (6,5))
-#ax.plot(energies_kin_inj, tau_values_SPS_Pb54, color='red')
-ax.errorbar(energies_kin_inj, tau_values_SPS_Pb54, yerr=0.5*tau_values_SPS_Pb54, fmt='*', ms=9, capsize=4, color='mediumblue', label='Pb54+ semi-empirical')
-#ax.plot(energies_kin_inj, tau_values_SPS_Pb80, color='purple')
-ax.errorbar(energies_kin_inj, tau_values_SPS_Pb80, yerr=0.5*tau_values_SPS_Pb80, fmt='*', ms=9, capsize=4, color='darkgreen', label='Pb80+ semi-empirical')
-#ax.plot(energies_kin_inj, tau_values_SPS_Pb81, color='gold')
-ax.errorbar(energies_kin_inj, tau_values_SPS_Pb81, yerr=0.5*tau_values_SPS_Pb81, fmt='*', ms=9, capsize=4, color='darkred', label='Pb81+ semi-empirical')
+
+# Pb54+
+ax.plot(energies_kin_inj, tau_values_SPS_Pb54, color='purple', label='Pb54+ semi-empirical')
+ax.plot(xdata_Pb54, ydata_Pb54, 'o', ms=9, markerfacecolor='magenta', color='black', label='Pb54+ RICODE-M')
+#ax.plot(xdata_Pb54, ydata_Pb54 * 2, '*', ms=10, markerfacecolor='magenta', color='black', label='Pb54+ RICODE w. relativistic correction')
+
+# Pb80+
+ax.plot(energies_kin_inj, tau_values_SPS_Pb80, color='red', label='Pb80+ semi-empirical')
+ax.plot(xdata_Pb80, ydata_Pb80, 'o', ms=9, markerfacecolor='brown', color='black', label='Pb80+ RICODE-M')
+#ax.plot(xdata_Pb80, ydata_Pb80 * 2, '*', ms=10, markerfacecolor='brown', color='black', label='Pb80+ RICODE w. relativistic correction')
+
+# Pb81+ in reality not relevant for this case, but possible to plot it 
+if also_plot_Pb81:
+    ax.plot(energies_kin_inj, tau_values_SPS_Pb81, color='gold')
+    ax.plot(xdata_Pb81, ydata_Pb81, 'o', ms=9, markerfacecolor='yellow', color='black', label='Pb81+ RICODE')
+
 ax.axvspan(E_kin_min, E_kin_max, color='green', alpha=0.2, label='Relevant SPS injection energy')
 ax.set_yscale('log')
 ax.set_xscale('log')
@@ -153,10 +165,6 @@ ax.set_xlim(1, 5200)
 ax.set_ylim(1, 1000)
 ax.grid(visible=True, which='major', color='k', linestyle='-', alpha=0.8)
 ax.grid(visible=True, which='minor', color='grey', linestyle='--', alpha=0.55) 
-
-ax.plot(xdata_Pb54, ydata_Pb54, 'o', markerfacecolor='none', color='aqua', label='Pb54+ RICODE')
-ax.plot(xdata_Pb80, ydata_Pb80, 'o', markerfacecolor='none', color='lime', label='Pb80+ RICODE')
-ax.plot(xdata_Pb81, ydata_Pb81, 'o', markerfacecolor='none', color='red', label='Pb81+ RICODE')
 
 ax.set_xlabel('E [GeV/u]')
 ax.set_ylabel(r'Lifetime $\tau$ [s]')

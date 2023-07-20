@@ -225,7 +225,7 @@ ax3.legend()
 fig3.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 fig3.savefig('Output/LEIR_PS_SPS_gas_composition.png', dpi=250)
 
-
+""""
 # Make lifetime plot of only Pb54+
 fig4, ax4 = plt.subplots(1, 1, figsize = (7,5))
 bar41 = ax4.bar(x[-1] - 1.15*bar_width, tau_values_LEIR[-1], bar_width, color='cyan', label='LEIR') #
@@ -242,3 +242,4 @@ ax4.legend()
 ax4.set_ylim(0.1, 4e11)
 fig4.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 fig4.savefig('Output/LEIR_PS_SPS_Pb_lifetime_plot.png', dpi=250)     
+""" 
