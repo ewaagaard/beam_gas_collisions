@@ -192,7 +192,7 @@ else:
 # Plot the cross sections of each projectile on H2 (first column)
 bar_width = 0.25
 fig2, ax2 = plt.subplots(1, 1, figsize = (11,5))
-fig2.suptitle('Projectile cross sections on H2', fontsize=18)
+#fig2.suptitle('Projectile cross sections on H2', fontsize=18)
 bar11 = ax2.bar(x - 1.15*bar_width, df_sigmas_EL_LEIR[:][0], bar_width, hatch='//', color='royalblue', label='LEIR EL') #
 bar12 = ax2.bar(x - 1.15*bar_width, df_sigmas_EC_LEIR[:][0], bar_width, color='cyan', hatch='\\',  alpha=0.65, label='LEIR EC') #
 bar21 = ax2.bar(x, df_sigmas_EL_PS[:][0], bar_width, color='coral', label='PS EL') #
@@ -203,7 +203,7 @@ ax2.set_yscale('log')
 ax2.set_xticks(x)
 ax2.set_xticklabels(projectile_data.index)
 ax2.set_ylabel(r"Cross section $\sigma$ [m$^{2}$]")
-ax2.legend()
+ax2.legend(fontsize=11)
 fig2.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 fig2.savefig('Output/Cross_sections_on_H2.png', dpi=250)
 
