@@ -4,12 +4,14 @@ The present ion beams in the CERN accelerator complex suffer from heavy losses d
 the beam intensity $I$ can be modelled with
 
 $$
-I(t) = I(t_0)\times\exp\bigg(- \frac{t}{\tau}\bigg),  \qquad \textrm{where} \quad \tau = \frac{1}{\sigma\,n\,\beta \, c }
+I(t) = I(t_0)\times\exp\bigg(- \frac{t}{\tau}\bigg),  \qquad \textrm{where} \quad \tau = \frac{1}{\sigma\ n\ \beta \ c }
 $$
 
 and $\sigma$ is the rest gas collision cross section, $\beta$ is the projectile relativistic beta factor, $c$ is the speed of light and $n$ is the molecular density in the beam pipe. The dominant contributions to the cross section $\sigma$ at PS and SPS ion beam energies are **electron capture (EC)** via pair production and **electron loss (EL)** via electron and nucleus impact ionization. Electron capture can be modelled with the [Schlachter formula](https://link.aps.org/doi/10.1103/PhysRevA.27.3372). We estimate the electron loss cross section with a semi-empirical formula combining studies from [Dubois](https://link.aps.org/doi/10.1103/PhysRevA.84.022702) and [Shevelko](https://www.sciencedirect.com/science/article/pii/S0168583X11003272).
 
 The `beam_gas_collisions` class to represent the beam-gas collisions contains the structures and parameters to calculate the EC and EL cross sections. Assuming that no other charge-changing processes are relevant at these energies, also the beam lifetimes $\tau$ can be calculated. The class can be initiated without any input paramters, or providing pressure `p` in mbar and the molecular fractions of H2, H2O, CO, CH4, CO2, He, O2 and Ar to directly find the molecular density of each compound in the accelerator.  
+
+A full review (currently under editing) and preliminary results of beam-gas interactions in the CERN accelerator complex can be found on this [link](https://www.overleaf.com/read/pvkmfbzrfnxk).
 
 ### Instantiating the class
 
@@ -72,7 +74,8 @@ taus_Ar = PS_rest_gas.calculate_lifetime_on_single_gas(p=5e-10, Z_t=19)
 
 In the module `LEIR_PS_SPS_lifetimes.py`, all the cross sections and estimated total lifetimes are calculated for various ions, as shown in these plots below. 
 
-![Cross_sections_on_H2](https://github.com/ewaagaard/Beam-gas-collisions/assets/68541324/a6a61af0-a1d5-46cd-b74f-6bd805fdac8e)
+![Sigmas_on_H2_all_ions](https://github.com/ewaagaard/Beam-gas-collisions/assets/68541324/6bbd7e51-6faf-4d90-8ddc-1db29bf40a11)
 
-![LEIR_PS_SPS_full_lifetime_plot_compact](https://github.com/ewaagaard/Beam-gas-collisions/assets/68541324/9820a9e1-3dd3-49d3-b28c-77bcde2decd3)
+![Rest_gas_lifetime_all_ions](https://github.com/ewaagaard/Beam-gas-collisions/assets/68541324/60f967a8-7bc4-4458-88f2-b27820b5976a)
+
 
