@@ -72,6 +72,7 @@ taus_Ar = PS_rest_gas.calculate_lifetime_on_single_gas(p=5e-10, Z_t=19)
 
 In the module `LEIR_PS_SPS_lifetimes.py`, all the cross sections and estimated total lifetimes are calculated for various ions, as shown in these plots below. 
 
-![Cross_sections_on_H2](https://github.com/ewaagaard/beam_gas_collisions/assets/68541324/1e651b8f-0a88-4ad3-83b8-2791bd016dd7)
+![Cross_sections_on_H2](https://github.com/ewaagaard/Beam-gas-collisions/assets/68541324/a6a61af0-a1d5-46cd-b74f-6bd805fdac8e)
 
-![LEIR_PS_SPS_full_lifetime_plot_compact](https://github.com/ewaagaard/beam_gas_collisions/assets/68541324/35d41518-c014-4a03-bcf3-86734aaf8636)
+![LEIR_PS_SPS_full_lifetime_plot_compact](https://github.com/ewaagaard/Beam-gas-collisions/assets/68541324/9820a9e1-3dd3-49d3-b28c-77bcde2decd3)
+
