@@ -55,7 +55,7 @@ plt.rc('legend', fontsize=SMALL_SIZE)   # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 fig, ax = plt.subplots(1, 1)
-ax.plot(p_range, taus_Ar, 'o', color='blue', label='Estimated Pb54+ lifetime on Ar')
+ax.plot(p_range, taus_Ar, 'o', color='blue', label='Semi-empirical lifetime\nPb54+ on Ar')
 ax.set_yscale('log')
 ax.set_xscale('log')
 ax.axhline(y=tau0, color='r', linestyle='-', label='Current Pb54+ lifetime')
