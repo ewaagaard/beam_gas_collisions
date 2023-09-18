@@ -9,6 +9,8 @@ $$
 
 and $\sigma$ is the rest gas collision cross section, $\beta$ is the projectile relativistic beta factor, $c$ is the speed of light and $n$ is the molecular density in the beam pipe. The dominant contributions to the cross section $\sigma$ at PS and SPS ion beam energies are **electron capture (EC)** via pair production and **electron loss (EL)** via electron and nucleus impact ionization. Electron capture can be modelled with the [Schlachter formula](https://link.aps.org/doi/10.1103/PhysRevA.27.3372). We estimate the electron loss cross section with a semi-empirical formula combining studies from [Dubois](https://link.aps.org/doi/10.1103/PhysRevA.84.022702) and [Shevelko](https://www.sciencedirect.com/science/article/pii/S0168583X11003272).
 
+![Rest_gas_collisions](https://github.com/ewaagaard/Beam-gas-collisions/assets/68541324/a83c3b9f-f020-4385-9003-c60dccd68c14)
+
 The `beam_gas_collisions` class to represent the beam-gas collisions contains the structures and parameters to calculate the EC and EL cross sections. Assuming that no other charge-changing processes are relevant at these energies, also the beam lifetimes $\tau$ can be calculated. The class can be initiated without any input paramters, or providing pressure `p` in mbar and the molecular fractions of H2, H2O, CO, CH4, CO2, He, O2 and Ar to directly find the molecular density of each compound in the accelerator.  
 
 A full review (currently under editing) and preliminary results of beam-gas interactions in the CERN accelerator complex can be found on this [link](https://www.overleaf.com/read/pvkmfbzrfnxk).
