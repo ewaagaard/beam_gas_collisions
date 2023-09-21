@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "beam_gas_collisions"
+description = "Package to calculate beam-gas interaction cross sections and lifetimes across the CERN Ion Injector Chain"
+version = "0.1.0"
+readme = "README.md"
+authors = [
+    { name = "Elias Waagaard", email = "elias.walter.waagaard@cern.ch" }
+]
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "pandas",
+    "scipy",
+]
+
+[tool.setuptools]
+py-modules = ['beam_gas_collisions']
