@@ -15,15 +15,27 @@ The `beam_gas_collisions` class to represent the beam-gas collisions contains th
 
 A full review (currently under editing) and preliminary results of beam-gas interactions in the CERN accelerator complex can be found on this [link](https://www.overleaf.com/read/pvkmfbzrfnxk).
 
+### Installing the package
+
+To directly start calculating beam lifetimes and cross sections, create an isolated virtual environment and perform a local `pip` install to use the beam_gas_collisions freely. Once having cloned the `beam_gas_collisions` repository, run:
+
+```python
+conda create --name test_venv python=3.11 numpy pandas scipy matplotlib
+conda activate test_venv
+python -m pip install -e beam_gas_collisions
+```
+Then the different scripts in the folder calculations can be executed.
+
 ### Instantiating the class
 
 ```python
 import pandas as pd 
-from beam_gas_collisions import beam_gas_collisions
+from beam_gas_collisions import BeamGasCollisions, Data
 
 # Load gas data
-gas_fractions = pd.read_csv('Data/Gas_fractions.csv', index_col=0)
-pressure_data = pd.read_csv('Data/Pressure_data.csv', index_col=0).T
+data = Data()
+gas_fractions = data.gas_fractions
+pressure_data = data.pressure_data
 
 # Instantiate PS class object
 PS_rest_gas =  beam_gas_collisions(pressure_data['PS'].values[0], gas_fractions['PS'].values)
@@ -31,7 +43,7 @@ PS_rest_gas =  beam_gas_collisions(pressure_data['PS'].values[0], gas_fractions[
 The class object can also be instantiated without providing pressure or gas to calculate single cross sections or lifetimes on a particular gas. The molecular densities and pressure (in mbar) can then be instantiated later:
 
 ```python
-PS_rest_gas =  beam_gas_collisions()
+PS_rest_gas =  BeamGasCollisions()
 PS_rest_gas.set_molecular_densities(gas_fractions['PS'].values, p = 5e-10)
 ```
 
@@ -67,7 +79,7 @@ tau = PS_rest_gas.calculate_total_lifetime_full_gas()
 Also the ion beam lifetime interacting with a single gas can be calculated, specifying the pressure and $Z$ of the target gas. 
 
 ```python
-PS_rest_gas =  beam_gas_collisions()
+PS_rest_gas =  BeamGasCollisions()
 PS_rest_gas.set_projectile_data([Z_p, q, e_kin, I_p, n_0, beta])  
 taus_Ar = PS_rest_gas.calculate_lifetime_on_single_gas(p=5e-10, Z_t=19)
 ```
