@@ -7,25 +7,26 @@ Calculate beam lifetimes and cross sections from beam-gas interactions
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from beam_gas_collisions import beam_gas_collisions
+from beam_gas_collisions import BeamGasCollisions, Data 
 
 # Plotting specifications
 bars_in_separate_plot = False
 
 # Load data 
 projectile = 'Pb54'
-gas_fractions = pd.read_csv('Data/Gas_fractions.csv', index_col=0)
-pressure_data = pd.read_csv('Data/Pressure_data.csv', index_col=0).T
-projectile_data = pd.read_csv('Data/Projectile_data.csv', index_col=0)
+data = Data()
+gas_fractions = data.gas_fractions  
+pressure_data = data.pressure_data 
+projectile_data = data.projectile_data
 
 # Instantiate classes for LEIR, PS, SPS
-LEIR_rest_gas =  beam_gas_collisions(pressure_data['LEIR'].values[0],
+LEIR_rest_gas =  BeamGasCollisions(pressure_data['LEIR'].values[0],
                                      gas_fractions['LEIR'].values)
 
-PS_rest_gas =  beam_gas_collisions(pressure_data['PS'].values[0],
+PS_rest_gas =  BeamGasCollisions(pressure_data['PS'].values[0],
                                      gas_fractions['PS'].values)
 
-SPS_rest_gas =  beam_gas_collisions(pressure_data['SPS'].values[0],
+SPS_rest_gas =  BeamGasCollisions(pressure_data['SPS'].values[0],
                                      gas_fractions['SPS'].values)
 
 # Initiate empty arrays for lifetime and rest gas 
@@ -132,9 +133,9 @@ gas_fractions_data = gas_fractions.loc[(gas_fractions!=0).any(axis=1)]
 
 
 ######## PLOT THE DATA ###########
-SMALL_SIZE = 12
-MEDIUM_SIZE = 15
-BIGGER_SIZE = 20
+SMALL_SIZE = 16
+MEDIUM_SIZE = 18
+BIGGER_SIZE = 23
 plt.rcParams["font.family"] = "serif"
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=BIGGER_SIZE)    # fontsize of the axes title
@@ -161,9 +162,9 @@ if bars_in_separate_plot:
     ax1.set_yscale('log')
     ax2.set_yscale('log')
     ax3.set_yscale('log')
-    ax1.bar_label(bar1, labels=[f'{e:,.1e}' for e in tau_values_LEIR], padding=3, color='black', fontsize=8) 
-    ax2.bar_label(bar2, labels=[f'{e:,.1e}' for e in tau_values_PS], padding=3, color='black', fontsize=8) 
-    ax3.bar_label(bar3, labels=[f'{e:,.1e}' for e in tau_values_SPS], padding=3, color='black', fontsize=8) 
+    ax1.bar_label(bar1, labels=[f'{e:,.1e}' for e in tau_values_LEIR], padding=3, color='black', fontsize=10) 
+    ax2.bar_label(bar2, labels=[f'{e:,.1e}' for e in tau_values_PS], padding=3, color='black', fontsize=10) 
+    ax3.bar_label(bar3, labels=[f'{e:,.1e}' for e in tau_values_SPS], padding=3, color='black', fontsize=10) 
     ax1.set_ylabel(r"Lifetime $\tau$ [s]")
     ax1.legend()
     ax2.legend()
@@ -177,9 +178,9 @@ else:
     bar1 = ax.bar(x - 1.15*bar_width, tau_values_LEIR, bar_width, color='cyan', label='LEIR') #
     bar2 = ax.bar(x, tau_values_PS, bar_width, color='red', label='PS') #
     bar3 = ax.bar(x + 1.15*bar_width, tau_values_SPS, bar_width, color='forestgreen', label='SPS') #
-    ax.bar_label(bar1, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_LEIR], padding=3, color='black', fontsize=9) 
-    ax.bar_label(bar2, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_PS], padding=3, color='black', fontsize=9) 
-    ax.bar_label(bar3, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_SPS], padding=3, color='black', fontsize=9) 
+    ax.bar_label(bar1, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_LEIR], padding=3, color='black', fontsize=10) 
+    ax.bar_label(bar2, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_PS], padding=3, color='black', fontsize=10) 
+    ax.bar_label(bar3, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_SPS], padding=3, color='black', fontsize=10) 
     ax.set_yscale('log')
     ax.set_xticks(x)
     ax.set_xticklabels(projectile_data.index)

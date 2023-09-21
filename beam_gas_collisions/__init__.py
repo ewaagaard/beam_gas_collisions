@@ -1,1 +1,2 @@
-from .beam_gas_collisions import beam_gas_collisions
+from .beam_gas_collisions import BeamGasCollisions
+from .beam_gas_collisions import Data

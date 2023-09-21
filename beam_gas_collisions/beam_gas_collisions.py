@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pandas as pd
 import scipy.constants as constants
 
-class beam_gas_collisions:
+class BeamGasCollisions:
     """
     Class to calculate the electron loss and electron capture cross section of rest gas collisions from 
     semi-empirical Dubois, Shevelko and Schlachter formulae 
@@ -455,3 +456,14 @@ class beam_gas_collisions:
         tau_tot = 1/tau_tot_inv
         
         return tau_tot 
+    
+    
+    
+class Data:
+    """
+    Contains all projectile, pressure and gas data
+    """
+    def __init__(self):
+        self.gas_fractions = pd.read_csv('../Data/Gas_fractions.csv', index_col=0)
+        self.pressure_data = pd.read_csv('../Data/Pressure_data.csv', index_col=0).T
+        self.projectile_data = pd.read_csv('../Data/Projectile_data.csv', index_col=0)
