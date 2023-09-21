@@ -4,6 +4,9 @@
 import numpy as np
 import pandas as pd
 import scipy.constants as constants
+from pathlib import Path
+
+data_folder = Path(__file__).resolve().parent.joinpath('../Data').absolute()
 
 class BeamGasCollisions:
     """
@@ -352,7 +355,7 @@ class BeamGasCollisions:
         tau_EC = 1.0/(sigma_EC * n * self.beta * self.c_light)
         tau_tot_inv = 1/tau_EL + 1/tau_EC
         tau_tot = 1/tau_tot_inv 
-        return tau_tot
+        return tau_tot, sigma_EL, sigma_EC
     
     
     def calculate_total_lifetime_full_gas(self, projectile_data=None):
@@ -464,6 +467,6 @@ class Data:
     Contains all projectile, pressure and gas data
     """
     def __init__(self):
-        self.gas_fractions = pd.read_csv('../Data/Gas_fractions.csv', index_col=0)
-        self.pressure_data = pd.read_csv('../Data/Pressure_data.csv', index_col=0).T
-        self.projectile_data = pd.read_csv('../Data/Projectile_data.csv', index_col=0)
+        self.gas_fractions = pd.read_csv('{}/Gas_fractions.csv'.format(data_folder), index_col=0)
+        self.pressure_data = pd.read_csv('{}/Pressure_data.csv'.format(data_folder), index_col=0).T
+        self.projectile_data = pd.read_csv('{}/Projectile_data.csv'.format(data_folder), index_col=0)

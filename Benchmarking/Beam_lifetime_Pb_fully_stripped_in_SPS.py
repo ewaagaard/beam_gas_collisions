@@ -4,17 +4,16 @@
 Investigating how fully stripped Pb ions behave in the SPS 
 """
 import numpy as np
-import sys
 import pandas as pd 
-sys.path.append("..")
-
-from beam_gas_collisions import beam_gas_collisions
+from beam_gas_collisions import BeamGasCollisions, Data
 
 # Load data 
 projectile = 'Pb54'
-gas_fractions = pd.read_csv('../Data/Gas_fractions.csv', index_col=0)
-pressure_data = pd.read_csv('../Data/Pressure_data.csv', index_col=0).T
-projectile_data = pd.read_csv('../Data/Projectile_data.csv', index_col=0)
+data = Data()
+gas_fractions = data.gas_fractions  
+pressure_data = data.pressure_data 
+projectile_data = data.projectile_data
+
 
 
 # Calculate lifetimes and cross sections for PS
@@ -29,7 +28,7 @@ projectile_data_SPS = np.array([projectile_data['Z'][projectile],
 full_hydrogen_array = np.zeros(len(gas_fractions['SPS'].values))
 full_hydrogen_array[0] = 1.0
 
-SPS_rest_gas =  beam_gas_collisions(pressure_data['SPS'].values[0],
+SPS_rest_gas =  BeamGasCollisions(pressure_data['SPS'].values[0],
                                      full_hydrogen_array)
 SPS_rest_gas.set_projectile_data(projectile_data_SPS)  
 

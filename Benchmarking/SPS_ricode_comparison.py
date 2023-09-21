@@ -6,10 +6,8 @@ Estimate lifetimes for Pb54+, Pb80+ and Pb81+ in SPS to compare with RICODE-M da
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import sys
-sys.path.append("..")
 
-from beam_gas_collisions import beam_gas_collisions
+from beam_gas_collisions import BeamGasCollisions, Data
 
 # Semi-empirical formula for EL not meant for 1s shell, so in reality not relevant for Pb81+
 also_plot_Pb81 = False
@@ -20,8 +18,7 @@ E_kin_max = 13.0
 
 # Load data 
 m_e = 0.510998950e6  # electron mass in eV
-gas_fractions = pd.read_csv('../Data/Gas_fractions.csv', index_col=0)
-pressure_data = pd.read_csv('../Data/Pressure_data.csv', index_col=0).T
+data = Data()
 
 # Load RICODE-M data from SPS (transcribed from Hirlaender et al, 2018) 10.18429/JACOW-IPAC2018-THPMF015
 xdata_Pb54 = np.array([1.22, 1.9, 3.0, 4.9, 7.8, 12.5, 19., 32., 49., 79., 120., 195.])
@@ -35,9 +32,9 @@ ydata_Pb81 = np.array([605., 520., 480., 420., 400., 370., 355., 340., 338., 336
 energies_kin_inj = np.logspace(np.log10(1.5), np.log10(6000), 15) # in GeV/u 
 
 # Instantiate rest gas class objects for the different ions - same gas compositions for all 
-SPS_Pb54 =  beam_gas_collisions(pressure_data['SPS'].values[0], gas_fractions['SPS'].values)
-SPS_Pb80 =  beam_gas_collisions(pressure_data['SPS'].values[0], gas_fractions['SPS'].values)
-SPS_Pb81 =  beam_gas_collisions(pressure_data['SPS'].values[0], gas_fractions['SPS'].values)
+SPS_Pb54 =  BeamGasCollisions(data.pressure_data['SPS'].values[0], data.gas_fractions['SPS'].values)
+SPS_Pb80 =  BeamGasCollisions(data.pressure_data['SPS'].values[0], data.gas_fractions['SPS'].values)
+SPS_Pb81 =  BeamGasCollisions(data.pressure_data['SPS'].values[0], data.gas_fractions['SPS'].values)
 
 # Initiate empty arrays for lifetime and rest gas 
 tau_values_SPS_Pb54 = np.zeros(len(energies_kin_inj))

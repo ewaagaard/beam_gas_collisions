@@ -4,16 +4,14 @@
 Estimate on Ar gas pressure effect on Pb ion beam lifetime in the PS 
 """
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
 import pandas as pd 
-sys.path.append("..")
 
-from beam_gas_collisions import beam_gas_collisions
+from beam_gas_collisions import BeamGasCollisions, Data
 
 # Load data 
 projectile = 'Pb54'
-projectile_data = pd.read_csv('../Data/Projectile_data.csv', index_col=0)
+data = Data()
 
 # Current lifetime and pressure
 tau0 = 1.5
@@ -24,23 +22,30 @@ Z_t = 18.0
 p_range = np.logspace(np.log10(1e-10), np.log10(1e-7), 15) # in mbar
 
 # Calculate lifetimes and cross sections for PS
-projectile_data_PS = np.array([projectile_data['Z'][projectile],
-                                projectile_data['PS_q'][projectile],
-                                projectile_data['PS_Kinj'][projectile],
-                                projectile_data['I_p'][projectile], 
-                                projectile_data['n_0'][projectile], 
-                                projectile_data['PS_beta'][projectile]])
+projectile_data_PS = np.array([data.projectile_data['Z'][projectile],
+                                data.projectile_data['PS_q'][projectile],
+                                data.projectile_data['PS_Kinj'][projectile],
+                                data.projectile_data['I_p'][projectile], 
+                                data.projectile_data['n_0'][projectile], 
+                                data.projectile_data['PS_beta'][projectile]])
 
 # Initiate PS beam-gas interactions
-PS_rest_gas =  beam_gas_collisions()
+PS_rest_gas =  BeamGasCollisions()
 PS_rest_gas.set_projectile_data(projectile_data_PS)  
 
 # Initiate empty lifetime array and iterate over the different pressures 
 taus_Ar = np.zeros(len(p_range))
 
 for i, p in enumerate(p_range):
-    taus_Ar[i] = PS_rest_gas.calculate_lifetime_on_single_gas(p, Z_t)
+    taus_Ar[i], sigma_EL, sigma_EC = PS_rest_gas.calculate_lifetime_on_single_gas(p, Z_t)
     
+# Print value of cross section on H2 vs Ar
+taus_Ar_0, sigma_EL_Ar, sigma_EC_Ar = PS_rest_gas.calculate_lifetime_on_single_gas(p_range[0], 18, atomicity=1)
+taus_H2_0, sigma_EL_H2, sigma_EC_H2 = PS_rest_gas.calculate_lifetime_on_single_gas(p_range[0], 1, atomicity=2)   
+ 
+print('\nEC cross sections: Ar = {:.3e} m-2, H2 = {:.3e} m-2'.format(sigma_EC_Ar, sigma_EC_H2))
+print('EL cross sections: Ar = {:.3e} m-2, H2 = {:.3e} m-2'.format(sigma_EL_Ar, sigma_EL_H2))
+
 ######## PLOT THE DATA ###########
 SMALL_SIZE = 10
 MEDIUM_SIZE = 15

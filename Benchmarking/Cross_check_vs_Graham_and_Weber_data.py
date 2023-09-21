@@ -8,17 +8,15 @@ Graham et al., PHYSICAL REVIEW A VOLUME 30, NUMBER 2 AUGUST 1984
 and PHYSICAL REVIEW SPECIAL TOPICS - ACCELERATORS AND BEAMS 18, 034403 (2015) for different charge states.
 """
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
 import pandas as pd 
-sys.path.append("..")
 
-from beam_gas_collisions import beam_gas_collisions
+from beam_gas_collisions import BeamGasCollisions
 
 test_data_read_from_Graham = True
 
 # Initiate beam-gas class object
-Pb_EL_checks = beam_gas_collisions()
+Pb_EL_checks = BeamGasCollisions()
 
 # Set projectile data common for all Pb ions 
 m_e = 0.510998950e6  # electron mass in eV

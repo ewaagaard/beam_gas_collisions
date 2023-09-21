@@ -6,12 +6,9 @@ https://www.sciencedirect.com/science/article/pii/S0168583X11003272
 """
 
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
 import pandas as pd 
-sys.path.append("..")
-
-from beam_gas_collisions import beam_gas_collisions
+from beam_gas_collisions import BeamGasCollisions
 
 # 
 also_generate_transparent_image = False 
@@ -19,7 +16,7 @@ also_generate_transparent_image = False
 # Rest gas composition of ['H2', 'H2O', 'CO', 'CH4', 'CO2', 'He', 'O2', 'Ar']
 gas_fractions = np.array([0.758, 0.049, 0.026, 0.119, 0.002, 0.034, 0.004, 0.008])
 p = 1e-10
-ion_beam_U28 = beam_gas_collisions(p, gas_fractions)
+ion_beam_U28 = BeamGasCollisions(p, gas_fractions)
 
 # Projectile_data
 Z_p = 92.
@@ -87,7 +84,7 @@ Z_N = 7.0
 Z_Ar = 18.0
 
 # Initiate beam-gas collision object
-ion_beam_U28_sigmas = beam_gas_collisions()
+ion_beam_U28_sigmas = BeamGasCollisions()
 
 # Iterate over the different energies
 for i, E_kin_EC in enumerate(EC_energy_range):

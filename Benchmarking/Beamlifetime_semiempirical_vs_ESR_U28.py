@@ -6,15 +6,13 @@ Estimate lifetimes for U28+ as compared to this study by DuBois (2009): https://
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import sys
-sys.path.append("..")
 
-from beam_gas_collisions import beam_gas_collisions
+from beam_gas_collisions import BeamGasCollisions
 
 #### Rest gas composition of['H2', 'H2O', 'CO', 'CH4', 'CO2', 'He', 'O2', 'Ar'] ####
 gas_fractions = np.array([0.83, 0.1, 0.0, 0.05, 0.01, 0.0, 0.0, 0.01])
 p = 2e-11
-ion_beam_U28 = beam_gas_collisions(p, gas_fractions)
+ion_beam_U28 = BeamGasCollisions(p, gas_fractions)
 
 #### Projectile_data ####
 Z_p = 92.
