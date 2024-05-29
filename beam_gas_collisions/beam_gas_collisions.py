@@ -128,6 +128,8 @@ class BeamGasCollisions:
         # Check if 'p' attribute exists
         if p is None and not hasattr(self, 'p'):
             raise ValueError('Have to provide pressure data!')
+        else:
+            self.p = p*1e2 # convert mbar to Pascal  
         if sum(molecular_fraction_array) != 1.0:
             raise ValueError('Molecular fraction does not sum up!')
         if not np.all(molecular_fraction_array >= 0):
