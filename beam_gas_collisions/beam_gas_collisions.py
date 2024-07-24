@@ -1,60 +1,84 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""
+Main container of Beam Gas Collisions class
+"""
 
 import numpy as np
 import pandas as pd
 import scipy.constants as constants
 from pathlib import Path
 
-data_folder = Path(__file__).resolve().parent.joinpath('../Data').absolute()
+data_folder = Path(__file__).resolve().parent.joinpath('../data').absolute()
 
-class BeamGasCollisions:
+
+class DataObject:
+    """
+    Data container for projectile, pressure and gas data
+    """
+    def __init__(self, machine='PS'):
+        """
+        Loads and stores data for desired accelertor
+        
+        Parameters
+        ----------
+        machine : str
+            Which CERN accelerator to load vacuum conditions from: 'LEIR', 'PS' or 'SPS'
+        """
+        if machine not in ['LEIR', 'PS', 'SPS']:
+            raise ValueError("Machine has to be 'LEIR', 'PS', or 'SPS' !")
+        
+        # Load full data
+        self.gas_fractions_all = pd.read_csv('{}/gas_fractions.csv'.format(data_folder), index_col=0)
+        self.pressure_data = pd.read_csv('{}/pressure_data.csv'.format(data_folder), index_col=0).T
+        self.projectile_data = pd.read_csv('{}/projectile_data.csv'.format(data_folder), index_col=0)
+        
+        # Fitting parameters obtained from the semi-empirical study by Weber (2016)
+        self.fitting_parameters = [10.88, 0.95, 2.5, 1.1137, -0.1805, 2.64886, 1.35832, 0.80696, 1.00514, 6.13667]
+        
+        # Store machine-specific pressure and gas data
+        self.pressure_pascal = self.pressure_data[machine] * 1e2 # convert mbar to Pascal (SI unit)
+        self.gas_frac = self.gas_fractions_all[machine]
+
+
+class IonLifetimes:
     """
     Class to calculate the electron loss and electron capture cross section of rest gas collisions from 
     semi-empirical Dubois, Shevelko and Schlachter formulae 
     """
-    def __init__(self, p=None, molecular_fraction_array=None, projectile_data=None, provided_beta=True, T=298):
+    def __init__(self, 
+                 projectile='Pb54',
+                 machine='PS',
+                 T=298):
         """
         Parameters
         ----------
-        beta : relativistic beta
-        p : vacuum pressure in millibar 
-        molecular_fraction_array: contains
-            x_H2 : fraction of H2
-            x_H2O : fraction of H2O
-            x_CO : fraction of CO
-            x_CH4 : fraction of CH4
-            x_CO2 : fraction of CO2
-            x_He : fraction of He
-            x_O2 : fraction of O2
-            x_Ar : fraction of Ar
-        T : Temperature in kelvin. The default is 298.
+        projectile : str
+            define ion and charge state (+). Available ions are 'He1', 'He2', 'O4', 'O8', 'Mg6', 'Mg7', 'Pb54'
+        machine : str
+            define CERN accelerator to load vacuum conditions from: 'LEIR', 'PS' or 'SPS'
+        T : float
+            temperature in kelvin. The default is 298.
         """
-        
-        # Fitting parameters obtained from the semi-empirical study by Weber (2016)
-        self.par = [10.88, 0.95, 2.5, 1.1137, -0.1805, 2.64886, 1.35832, 0.80696, 1.00514, 6.13667]
-        
+        if machine not in ['LEIR', 'PS', 'SPS']:
+            raise ValueError("Machine has to be 'LEIR', 'PS', or 'SPS' !")            
+
         # Beam and accelerator setting
         self.K = constants.Boltzmann
         self.T = T # temperature in Kelvin 
         self.c_light = constants.c
+        self.projectile = projectile
+        self.machine = machine
         
-        ### Set attributes if provided ###
-        if p is not None:
-            self.p = p*1e2 # convert mbar to Pascal  
-        if molecular_fraction_array is not None:
-            self.set_molecular_densities(molecular_fraction_array)
-            self.molecular_densities_are_set = True
-        else:
-            self.molecular_densities_are_set = False
-        if projectile_data is not None:
-            self.set_projectile_data(projectile_data, provided_beta)
-        else:
-            self.exists_projetile_data = False
-        self.lifetimes_are_calculated = False # state to indicate if lifetimes are calculated or not
+        # Load data: set pressure in Pascal and molecular density
+        data = DataObject(machine)
+        self.p = data.pressure_pascal.values[0]
+        self.set_molecular_densities(data.gas_frac)
+        self.par = data.fitting_parameters # Semi-empirical fitting parameters
+        self.set_projectile_data(data)
+        print('\nProjectile initialized: {}'.format(self.projectile))
+        print('at p = {} mbar\n'.format(self.p / 1e2))
+        
     
-    
-    def set_projectile_data(self, projectile_data, provided_beta=True):
+    def set_projectile_data(self, data):
         """
         Sets the projectile data:
             Z_p : Z of projectile
@@ -65,46 +89,28 @@ class BeamGasCollisions:
             Can either provide: beta or m
                 beta: relativistic beta 
                 m: mass of atom in Dalton (atomic unit)
+                
+        Parameters:
+        -----------
+        data : DataObject
         """
-        if provided_beta:
-            self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
-            self.exists_beta = True
-            self.exists_projetile_data = True
-        else:
-            self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.atomic_mass_in_u = projectile_data
-            self.exists_projetile_data = True
-            self.beta_from_mass()
-            self.exists_beta = True
+        projectile_data = np.array([data.projectile_data['Z'][self.projectile],
+                                    data.projectile_data['{}_q'.format(self.machine)][self.projectile],
+                                    data.projectile_data['{}_Kinj'.format(self.machine)][self.projectile],
+                                    data.projectile_data['I_p'][self.projectile], 
+                                    data.projectile_data['n_0'][self.projectile], 
+                                    data.projectile_data['{}_beta'.format(self.machine)][self.projectile]])
         
+        self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
         
-    def beta_from_mass(self):
+
+    def set_molecular_densities(self, molecular_fraction_array):
         """
-        Calculate relativistic beta factor from projectile data if only mass is given
-        """
-        if not self.exists_projetile_data:
-            raise ValueError('Have to provide projectile data!') 
-            
-        # Calculate mass of ion in electron volt 
-        self.mass_in_u_stripped = self.atomic_mass_in_u - (self.Z_p - self.q) * constants.physical_constants['electron mass in u'][0] 
-        self.mass_in_eV =  self.mass_in_u_stripped * constants.physical_constants['atomic mass unit-electron volt relationship'][0]
-        self.E_tot = self.mass_in_eV + 1e6*self.e_kin * self.mass_in_u_stripped# total kinetic energy in eV per particle at injection
-        self.gamma = self.E_tot/self.mass_in_eV
-        self.beta = self.beta_from_gamma(self.gamma)
+        Specify fraction of molecular density in rest gas
         
-    
-    
-    def beta_from_gamma(self, gamma):
-        """
-        Relativistic beta factor from gamma factor 
-        """
-        return np.sqrt(1 - 1/gamma**2)
-        
-    
-    def set_molecular_densities(self, molecular_fraction_array, p=None):
-        """
         Parameters
         ----------
-        molecular_fraction_array: contains
+        molecular_fraction_array: np.ndarray
             x_H2 : fraction of H2
             x_H2O : fraction of H2O
             x_CO : fraction of CO
@@ -118,25 +124,15 @@ class BeamGasCollisions:
         ------
         ValueError
             If fraction of gases does not sum up to 1.0
-        ValueError
-            If pressure data is not provided when the 'p' attribute is not set
-        
-        Returns
-        -------
-        None.
         """
-        # Check if 'p' attribute exists
-        if p is None and not hasattr(self, 'p'):
-            raise ValueError('Have to provide pressure data!')
-        else:
-            self.p = p*1e2 # convert mbar to Pascal  
         if sum(molecular_fraction_array) != 1.0:
             raise ValueError('Molecular fraction does not sum up!')
         if not np.all(molecular_fraction_array >= 0):
             raise ValueError('Cannot set negative molecular fraction')
             
         # Set the molecular fractions
-        x_H2, x_H2O, x_CO, x_CH4, x_CO2, x_He, x_O2, x_Ar = molecular_fraction_array    
+        x_H2, x_H2O, x_CO, x_CH4, x_CO2, x_He, x_O2, x_Ar = molecular_fraction_array
+        print('{}: molecular gas densities set to:\n{}'.format(self.machine, molecular_fraction_array))
         
         # Calculate the molecular density for each gas 
         self.n_H2 = self.p * x_H2 / (self.K * self.T)
@@ -165,11 +161,16 @@ class BeamGasCollisions:
 
         Parameters
         ----------
-        Z : Z of target
-        Z_p : Z of projectile
-        q : charge of projectile.
-        e_kin : collision energy in MeV/u.
-        I_p : first ionization potential of projectile in keV
+        Z : int
+            Z of target
+        Z_p : int
+            Z of projectile
+        q : int
+            charge of projectile.
+        e_kin : float
+            collision energy in MeV/u.
+        I_p : float
+            first ionization potential of projectile in keV
 
         Returns
         -------
@@ -197,11 +198,16 @@ class BeamGasCollisions:
 
         Parameters
         ----------
-        Z_p : Z of projectile
-        q : charge of projectile.
-        e_kin : collision energy in MeV/u.
-        I_p : first ionization potential of projectile in keV
-        n_0 : principle quantum number of outermost projectile electron 
+        Z_p : int
+            Z of projectile
+        q : int
+            charge of projectile.
+        e_kin : float
+            collision energy in MeV/u.
+        I_p : float
+            first ionization potential of projectile in keV
+        n_0 : int
+            principle quantum number of outermost projectile electron 
 
         Returns
         -------
@@ -272,62 +278,8 @@ class BeamGasCollisions:
             sigma_electron_capture *= 1e-4 # convert to m^2
         return sigma_electron_capture
         
-    
-    def return_all_sigmas(self):
-        """
-        Return electron loss (EL) and electron capture (EC) cross sections after having calculated estimates lifetimes
-        unit is in m^2 (SI units), for rest gases with non-zero contribution 
- 
-        Returns
-        -------
-        sigmas_EL 
-        sigmas_EC
-        """
-        if not self.lifetimes_are_calculated:
-            self.calculate_total_lifetime_full_gas()
-
-        # All sigmas for electron loss and electron capture
-        sigmas_EL = np.array([self.sigma_H2_EL, 
-                              self.sigma_H2O_EL, 
-                              self.sigma_CO_EL, 
-                              self.sigma_CH4_EL, 
-                              self.sigma_CO2_EL, 
-                              self.sigma_He_EL, 
-                              self.sigma_O2_EL,
-                              self.sigma_Ar_EL])
         
-        sigmas_EC = np.array([self.sigma_H2_EC, 
-                              self.sigma_H2O_EC, 
-                              self.sigma_CO_EC, 
-                              self.sigma_CH4_EC, 
-                              self.sigma_CO2_EC,
-                              self.sigma_He_EC, 
-                              self.sigma_O2_EC,
-                              self.sigma_Ar_EC])
-
-        # Create a list to store the non-zero fractions and corresponding cross sections
-        non_zero_fractions = []
-        non_zero_sigmas_EL = []
-        non_zero_sigmas_EC = []
-
-        # Iterate over the fractions and cross sections
-        for fraction, sigma_EL, sigma_EC in zip(self.fractions, sigmas_EL, sigmas_EC):
-            # Check if the fraction is non-zero
-            if fraction != 0:
-                # Append the non-zero fraction and corresponding cross sections to the respective lists
-                non_zero_fractions.append(fraction)
-                non_zero_sigmas_EL.append(sigma_EL)
-                non_zero_sigmas_EC.append(sigma_EC)
-        
-        # Convert the non-zero cross sections to numpy arrays
-        non_zero_sigmas_EL = np.array(non_zero_sigmas_EL)
-        non_zero_sigmas_EC = np.array(non_zero_sigmas_EC)
-
-        # Return the non-zero fractions and cross sections
-        return non_zero_sigmas_EL, non_zero_sigmas_EC, non_zero_fractions
-    
-    
-    def calculate_lifetime_on_single_gas(self, p, Z_t, projectile_data=None, atomicity=1):
+    def calculate_lifetime_on_single_gas(self, p, Z_t, atomicity=1):
         """
         Calculates beam lifetime from electron loss and electron capture from beam gas
         interactions with a single gas 
@@ -336,12 +288,12 @@ class BeamGasCollisions:
         ----------
         p : pressure in beam pipe in millibar 
         Z_t : Z of target
-        projectile_data: optional, not needed if projectile data is already initiated 
         atomicity : number of atoms per molecule
 
         Returns
         -------
-        Total lifetime tau in seconds
+        tau_tot, sigma_EL, sigma_EC : float
+            total lifetime tau in seconds, cross sections of EL and EC
         """  
         # Find molecular density from pressure
         p_SI =  p*1e2 # convert mbar to Pascal (SI) 
@@ -360,29 +312,15 @@ class BeamGasCollisions:
         return tau_tot, sigma_EL, sigma_EC
     
     
-    def calculate_total_lifetime_full_gas(self, projectile_data=None):
+    def calculate_total_lifetime_full_gas(self):
         """
         Calculates beam lifetime contributions for electron loss and electron capture from beam gas
         interactions with all compound gases
-        
-        Parameters
-        ----------
-        projectile_data: optional, not needed if projectile data is already initiated 
         
         Returns
         -------
         Total lifetime tau in seconds
         """
-        if not self.molecular_densities_are_set:
-            raise ValueError('Have to provide molecular composition data!') 
-        if not self.exists_beta:
-            raise ValueError('Beta has to be provided!') 
-        if not self.exists_projetile_data:
-            if projectile_data is not None:
-                self.set_projectile_data(projectile_data)
-            else:
-                raise ValueError('Have to provide projectile data!') 
-        
         # Atomic numbers of relevant gasess
         Z_H = 1.0
         Z_He = 2.0
@@ -463,12 +401,55 @@ class BeamGasCollisions:
         return tau_tot 
     
     
+    def return_all_sigmas(self):
+        """
+        Return electron loss (EL) and electron capture (EC) cross sections after having calculated estimates lifetimes
+        unit is in m^2 (SI units), for rest gases with non-zero contribution 
+ 
+        Returns
+        -------
+        sigmas_EL : electron loss cross section
+        sigmas_EC : electron capture (EC) cross section
+        """
+        self.calculate_total_lifetime_full_gas()
+
+        # All sigmas for electron loss and electron capture
+        sigmas_EL = np.array([self.sigma_H2_EL, 
+                              self.sigma_H2O_EL, 
+                              self.sigma_CO_EL, 
+                              self.sigma_CH4_EL, 
+                              self.sigma_CO2_EL, 
+                              self.sigma_He_EL, 
+                              self.sigma_O2_EL,
+                              self.sigma_Ar_EL])
+        
+        sigmas_EC = np.array([self.sigma_H2_EC, 
+                              self.sigma_H2O_EC, 
+                              self.sigma_CO_EC, 
+                              self.sigma_CH4_EC, 
+                              self.sigma_CO2_EC,
+                              self.sigma_He_EC, 
+                              self.sigma_O2_EC,
+                              self.sigma_Ar_EC])
+
+        # Create a list to store the non-zero fractions and corresponding cross sections
+        non_zero_fractions = []
+        non_zero_sigmas_EL = []
+        non_zero_sigmas_EC = []
+
+        # Iterate over the fractions and cross sections
+        for fraction, sigma_EL, sigma_EC in zip(self.fractions, sigmas_EL, sigmas_EC):
+            # Check if the fraction is non-zero
+            if fraction != 0:
+                # Append the non-zero fraction and corresponding cross sections to the respective lists
+                non_zero_fractions.append(fraction)
+                non_zero_sigmas_EL.append(sigma_EL)
+                non_zero_sigmas_EC.append(sigma_EC)
+        
+        # Convert the non-zero cross sections to numpy arrays
+        non_zero_sigmas_EL = np.array(non_zero_sigmas_EL)
+        non_zero_sigmas_EC = np.array(non_zero_sigmas_EC)
+
+        # Return the non-zero fractions and cross sections
+        return non_zero_sigmas_EL, non_zero_sigmas_EC, non_zero_fractions
     
-class Data:
-    """
-    Contains all projectile, pressure and gas data
-    """
-    def __init__(self):
-        self.gas_fractions = pd.read_csv('{}/Gas_fractions.csv'.format(data_folder), index_col=0)
-        self.pressure_data = pd.read_csv('{}/Pressure_data.csv'.format(data_folder), index_col=0).T
-        self.projectile_data = pd.read_csv('{}/Projectile_data.csv'.format(data_folder), index_col=0)
