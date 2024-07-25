@@ -127,7 +127,7 @@ class IonLifetimes:
         print('\nProjectile initialized: {}\n{}\n'.format(self.projectile, data.projectile_data.loc[self.projectile]))
 
 
-    def set_projectile_data_manually(self, projectile_data):
+    def set_projectile_data_manually(self, projectile_data, beta_is_provided=False):
         """
         Sets the projectile data manually, and calculates relativistic beta
 
@@ -140,14 +140,19 @@ class IonLifetimes:
             I_p : first ionization potential of projectile in keV
             n_0: principal quantum number
             m: mass of atom in Dalton (atomic unit)
+        beta_is_provided: bool
+            whether relativistic beta is given, or only the atomic mass. Default is False.
         """
-        self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.atomic_mass_in_u = projectile_data
+        if beta_is_provided:
+            self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
+        else:
+            self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.atomic_mass_in_u = projectile_data
 
-        self.mass_in_u_stripped = self.atomic_mass_in_u - (self.Z_p - self.q) * constants.physical_constants['electron mass in u'][0] 
-        self.mass_in_eV =  self.mass_in_u_stripped * constants.physical_constants['atomic mass unit-electron volt relationship'][0]
-        self.E_tot = self.mass_in_eV + 1e6*self.e_kin * self.mass_in_u_stripped# total kinetic energy in eV per particle at injection
-        self.gamma = self.E_tot/self.mass_in_eV
-        self.beta = np.sqrt(1 - 1/self.gamma**2)
+            self.mass_in_u_stripped = self.atomic_mass_in_u - (self.Z_p - self.q) * constants.physical_constants['electron mass in u'][0] 
+            self.mass_in_eV =  self.mass_in_u_stripped * constants.physical_constants['atomic mass unit-electron volt relationship'][0]
+            self.E_tot = self.mass_in_eV + 1e6*self.e_kin * self.mass_in_u_stripped# total kinetic energy in eV per particle at injection
+            self.gamma = self.E_tot/self.mass_in_eV
+            self.beta = np.sqrt(1 - 1/self.gamma**2)
 
 
     def set_molecular_densities(self, molecular_fraction_array):
