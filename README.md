@@ -37,9 +37,9 @@ Thanks to the `DataObject()` class, pressure and projectile data is loaded autom
 ```python
 from beam_gas_collisions import IonLifetimes
 
-# Instantiate PS class object
+# Instantiate PS class object for Pb54+ ion lifetime under nominal vacuum conditions
 PS = IonLifetimes(projectile='Pb54', machine='PS')
-tau_Pb54_PS = PS.calculate_total_lifetime_full_gas()  # gives Pb54+ ion lifetime under nominal vacuum conditions
+tau_Pb54_PS = PS.calculate_total_lifetime_full_gas()
 ```
 All EC and EL cross sections are implicitly calculated for non-zero fractions of rest gas inside the `calculate_total_lifetime_full_gas()` method, we can also calculate the cross sections explicitly:
 
@@ -57,7 +57,9 @@ where the parameters are
 - `e_kin` is the collision energy in MeV/u
 - `e_kin_keV` is the collision energy in keV/u
 - `I_p` is the first ionization potential of projectile in keV
-- `n_0` is principle quantum number of outermost projectile electron. `n_0` and `I_0` for each ion can be found on the [NIST database](https://physics.nist.gov/PhysRefData/ASD/ionEnergy.html).
+- `n_0` is principle quantum number of outermost projectile electron.
+
+`n_0` and `I_0` for each ion can be found on the [NIST database](https://physics.nist.gov/PhysRefData/ASD/ionEnergy.html).
 
 ### Manually calculating lifetime and cross sections for new ions
 
@@ -66,8 +68,8 @@ The class object can also be used for a hypothetical accelerator, as long as pre
 ```python
 import numpy as np
 
-# Rest gas composition of ['H2', 'H2O', 'CO', 'CH4', 'CO2', 'He', 'O2', 'Ar']
-gas_fractions = np.array([0.758, 0.049, 0.026, 0.119, 0.002, 0.034, 0.004, 0.008]) # relative fraction
+# Relative rest gas composition of ['H2', 'H2O', 'CO', 'CH4', 'CO2', 'He', 'O2', 'Ar']
+gas_fractions = np.array([0.758, 0.049, 0.026, 0.119, 0.002, 0.034, 0.004, 0.008])
 p = 1e-10 #mbar
 
 # Instantiate class for ion lifetimes
