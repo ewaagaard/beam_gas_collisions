@@ -1,22 +1,17 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Benchmarking tests to compare lifetime and cross sections of U28+ from Fig. 13 and Fig. 14 in Shevelko (2011)
+Benchmarking tests to semi-empirical cross sections of U28+ from experiments in Fig. 13 and Fig. 14 in Shevelko (2011)
 https://www.sciencedirect.com/science/article/pii/S0168583X11003272
 """
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd 
-from beam_gas_collisions import BeamGasCollisions
-
-# 
-also_generate_transparent_image = False 
+from beam_gas_collisions import IonLifetimes
+import os
 
 # Rest gas composition of ['H2', 'H2O', 'CO', 'CH4', 'CO2', 'He', 'O2', 'Ar']
 gas_fractions = np.array([0.758, 0.049, 0.026, 0.119, 0.002, 0.034, 0.004, 0.008])
-p = 1e-10
-ion_beam_U28 = BeamGasCollisions(p, gas_fractions)
+p = 1e-10 #mbar
+ion_beam_U28 = IonLifetimes(machine=None, p=p, molecular_fraction_array=gas_fractions)
 
 # Projectile_data
 Z_p = 92.
@@ -50,10 +45,6 @@ Olsen_E_H2 = np.array([3.5, ])
 Olsen_EC_H2 = np.array([0.048, ])
 Olsen_error_H2 = np.array([0.016])
 
-
-####
-
-
 ###### STEP 1: calculate lifetime of U28 in rest gas ######
 
 # Iterate over the different energies
@@ -68,7 +59,7 @@ for i, E_kin in enumerate(energies_kin_inj):
                                     atomic_mass_U238_in_u
                                     ])
         
-    ion_beam_U28.set_projectile_data(projectile_data_U28, provided_beta=False)  
+    ion_beam_U28.set_projectile_data_manually(projectile_data_U28)  
     tau_values_U28[i] = ion_beam_U28.calculate_total_lifetime_full_gas()
     
 ###### STEP 2: calculate U28 EL and EC cross sections ######
@@ -84,7 +75,7 @@ Z_N = 7.0
 Z_Ar = 18.0
 
 # Initiate beam-gas collision object
-ion_beam_U28_sigmas = BeamGasCollisions()
+ion_beam_U28_sigmas = IonLifetimes()
 
 # Iterate over the different energies
 for i, E_kin_EC in enumerate(EC_energy_range):
@@ -114,26 +105,10 @@ plt.rc('legend', fontsize=SMALL_SIZE)   # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
-##### U28+ lifetime on rest gas #####
-"""
-fig, ax = plt.subplots(1, 1, figsize = (6,5))
-ax.plot(energies_kin_inj, tau_values_U28, '*', color='blue', label='Semi-empirical formula')
-#ax.errorbar(energies_kin_inj, tau_values_SPS_Pb54, yerr=0.5*tau_values_SPS_Pb54, fmt='*', ms=9, capsize=4, color='mediumblue', label='Pb54+ semi-empirical')
-#ax.set_yscale('log')
-ax.set_xscale('log')
-#ax.set_xlim(1, 5200)
-#ax.set_ylim(1, 1000)
-ax.grid(visible=True, which='major', color='k', linestyle='-', alpha=0.8)
-ax.grid(visible=True, which='minor', color='grey', linestyle='--', alpha=0.55) 
-ax.set_xlabel('E [MeV/u]')
-ax.set_ylabel(r'Lifetime $\tau$ [s]')
-ax.legend()
-fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-#fig.savefig('Output/SPS_RICODE_benchmarking_lifetimes.png', dpi=250)
-"""
+##### Plot the data #####
+os.makedirs('output_and_plots', exist_ok=True)
 
 ##### U28+ EC and EL cross sections #####
-
 fig2, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize = (12,5))
 
 # H2
@@ -160,54 +135,15 @@ ax3.errorbar([3.5, 6.5], [11.20e-18, 0.39e-18], yerr=[0.89e-18, 0.09e-18], color
 ax3.text(0.08, 0.05, r'Ar', fontsize=23, transform=ax3.transAxes)
 
 ax1.set_ylabel(r'$\sigma$ [cm$^{2}$/atom]')
-ax1.set_xlabel('E [MeV/u]')
-ax2.set_xlabel('E [MeV/u]')
-ax3.set_xlabel('E [MeV/u]')
-ax1.set_xscale('log')
-ax2.set_xscale('log')
-ax3.set_xscale('log')
-ax1.set_yscale('log')
-ax2.set_yscale('log')
-ax3.set_yscale('log')
-ax1.set_ylim(1e-20, 1e-14)
-ax2.set_ylim(1e-20, 1e-14)
-ax3.set_ylim(1e-20, 1e-14)
-ax1.set_xlim(1e-2, 1e4)
-ax2.set_xlim(1e-2, 1e4)
-ax3.set_xlim(1e-2, 1e4)
-ax1.grid()
-ax2.grid()
-ax3.grid()
-#ax1.legend()
-#ax2.legend()
+for ax in (ax1, ax2, ax3):
+    ax.set_xlabel('E [MeV/u]')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_ylim(1e-20, 1e-14)
+    ax.set_xlim(1e-2, 1e4)
+    ax.grid()
+
 ax3.legend(fontsize=10)
 fig2.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-fig2.savefig('Output/U28_EC_EL_cross_section_comparison_plot.png', dpi=250)
-
-# Generate transparent image to compare with Shevelko cross section plot 
-if also_generate_transparent_image:
-    fig3, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize = (9,5))
-    ax1.tick_params(labelbottom=False, labelleft=False)
-    ax1.plot(EC_energy_range, sigma_EC[0, :], color='maroon', linestyle='-', linewidth=2)
-    ax1.plot(EL_energy_range, sigma_EL[0, :], color='red', linestyle='dashed', linewidth=2)
-    ax2.plot(EC_energy_range, sigma_EC[1, :], color='forestgreen', linestyle='-', linewidth=2)
-    ax2.plot(EL_energy_range, sigma_EL[1, :], color='lime', linestyle='dashed', linewidth=2)
-    ax3.plot(EC_energy_range, sigma_EC[2, :], color='blue', linestyle='-', linewidth=2)
-    ax3.plot(EL_energy_range, sigma_EL[2, :],  color='cyan', linestyle='dashed', linewidth=2)
-    ax1.set_xscale('log')
-    ax2.set_xscale('log')
-    ax3.set_xscale('log')
-    ax1.set_yscale('log')
-    ax2.set_yscale('log')
-    ax3.set_yscale('log')
-    ax1.set_xlim(1e-3, 1e4)
-    ax2.set_xlim(1e-3, 1e4)
-    ax3.set_xlim(1e-3, 1e4)
-    ax1.set_ylim(1e-20, 1e-14)
-    ax2.set_ylim(1e-20, 1e-14)
-    ax3.set_ylim(1e-20, 1e-14)
-    fig3.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-    ax1.tick_params(labelbottom=False, labelleft=False)
-    ax2.tick_params(labelbottom=False, labelleft=False)
-    ax3.tick_params(labelbottom=False, labelleft=False)
-    fig3.savefig('Output/U28_EC_EL_cross_lifetimes.png', dpi=250, transparent=True)
+fig2.savefig('output_and_plots/U28_EC_EL_cross_section_comparison_plot.png', dpi=250)
+plt.show()

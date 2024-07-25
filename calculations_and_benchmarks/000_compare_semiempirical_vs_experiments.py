@@ -1,17 +1,15 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Comparison with data from Fortran semi-empirical formula from G. Weber 
+Script to compare semi-empirical formula from G. Weber with experimental data
 """
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
-sys.path.append("..")
+import os
 
-from beam_gas_collisions import beam_gas_collisions
+from beam_gas_collisions import IonLifetimes
 
-df = pd.read_csv('Benchmarking_data/electron_loss_experiment_vs_semiempirical_formattet.csv', header=0, sep=';')
+# Load reference data
+df = pd.read_csv('benchmarking_data/electron_loss_experiment_vs_semiempirical_formattet.csv', header=0, sep=';')
 df = df.dropna(how='all')
 
 ### Define projectile data - Z_p : Z of projectile, q : charge of projectile, e_kin : collision energy in MeV/u.
@@ -25,7 +23,7 @@ projectile_data_Fe4 = np.array([26,
                                 55.934935  # most abundant isotope atomic_mass_in_u, from AME2016 Table 
                                 ])
 Zt_for_Fe4 = np.logspace(np.log10(2.0), np.log10(54), 5)   #np.array([2., 7., 10., 11., 13., 15.])
-ion_beam_Fe4 = beam_gas_collisions()
+ion_beam_Fe4 = IonLifetimes()
 
 projectile_data_Xe18 = np.array([54.,
                                 18.,  
@@ -35,7 +33,7 @@ projectile_data_Xe18 = np.array([54.,
                                 131.904155087  # most abundant isotope atomic_mass_in_u, from AME2016 Table 
                                 ])
 Zt_for_Xe18 = np.logspace(np.log10(1.0), np.log10(50.), 5)
-ion_beam_Xe18 = beam_gas_collisions()
+ion_beam_Xe18 = IonLifetimes()
 
 
 projectile_data_Au52 = np.array([79.,
@@ -46,7 +44,7 @@ projectile_data_Au52 = np.array([79.,
                                 196.9665701  # most abundant isotope atomic_mass_in_u, from AME2016 Table 
                                 ])
 Zt_for_Au52 = np.logspace(np.log10(1.0), np.log10(8.), 5)
-ion_beam_Au52 = beam_gas_collisions()
+ion_beam_Au52 = IonLifetimes()
 
 projectile_data_Xe45 = np.array([54.,
                                 45.,  
@@ -56,7 +54,7 @@ projectile_data_Xe45 = np.array([54.,
                                 131.904155087  # most abundant isotope atomic_mass_in_u, from AME2016 Table 
                                 ])
 Zt_for_Xe45 = np.logspace(np.log10(6.0), np.log10(80.), 5)
-ion_beam_Xe45 = beam_gas_collisions()
+ion_beam_Xe45 = IonLifetimes()
 
 projectile_data_U83 = np.array([92.,
                                 83.,  
@@ -66,7 +64,7 @@ projectile_data_U83 = np.array([92.,
                                 238.050787 # most abundant isotope atomic_mass_in_u, from AME2016 Table 
                                 ])
 Zt_for_U83 = np.logspace(np.log10(4.0), np.log10(80.), 5)
-ion_beam_U83 = beam_gas_collisions()
+ion_beam_U83 = IonLifetimes()
 
 U83_experimental = np.array([])
 
@@ -75,7 +73,7 @@ sigma_EL = np.zeros([5, len(Zt_for_Fe4)])
 
 # Iterate over the different target Z
 for i, Z_t in enumerate(Zt_for_Fe4):
-    ion_beam_Fe4.set_projectile_data(projectile_data_Fe4, provided_beta=False)
+    ion_beam_Fe4.set_projectile_data_manually(projectile_data_Fe4)
     sigma_EL[0, i] = ion_beam_Fe4.calculate_sigma_electron_loss(Zt_for_Fe4[i], 
                                                                 ion_beam_Fe4.Z_p, 
                                                                 ion_beam_Fe4.q, 
@@ -84,7 +82,7 @@ for i, Z_t in enumerate(Zt_for_Fe4):
                                                                 ion_beam_Fe4.n_0, 
                                                                 SI_units=False)
     
-    ion_beam_Xe18.set_projectile_data(projectile_data_Xe18, provided_beta=False)
+    ion_beam_Xe18.set_projectile_data_manually(projectile_data_Xe18)
     sigma_EL[1, i] = ion_beam_Xe18.calculate_sigma_electron_loss(Zt_for_Xe18[i], 
                                                                 ion_beam_Xe18.Z_p, 
                                                                 ion_beam_Xe18.q, 
@@ -93,7 +91,7 @@ for i, Z_t in enumerate(Zt_for_Fe4):
                                                                 ion_beam_Xe18.n_0, 
                                                                 SI_units=False)
     
-    ion_beam_Au52.set_projectile_data(projectile_data_Au52, provided_beta=False)
+    ion_beam_Au52.set_projectile_data_manually(projectile_data_Au52)
     sigma_EL[2, i] = ion_beam_Au52.calculate_sigma_electron_loss(Zt_for_Au52[i], 
                                                                 ion_beam_Au52.Z_p, 
                                                                 ion_beam_Au52.q, 
@@ -102,7 +100,7 @@ for i, Z_t in enumerate(Zt_for_Fe4):
                                                                 ion_beam_Au52.n_0, 
                                                                 SI_units=False)
     
-    ion_beam_Xe45.set_projectile_data(projectile_data_Xe45, provided_beta=False)
+    ion_beam_Xe45.set_projectile_data_manually(projectile_data_Xe45)
     sigma_EL[3, i] = ion_beam_Xe45.calculate_sigma_electron_loss(Zt_for_Xe45[i], 
                                                                 ion_beam_Xe45.Z_p, 
                                                                 ion_beam_Xe45.q, 
@@ -111,7 +109,7 @@ for i, Z_t in enumerate(Zt_for_Fe4):
                                                                 ion_beam_Xe45.n_0, 
                                                                 SI_units=False)
     
-    ion_beam_U83.set_projectile_data(projectile_data_U83, provided_beta=False)
+    ion_beam_U83.set_projectile_data_manually(projectile_data_U83)
     sigma_EL[4, i] = ion_beam_U83.calculate_sigma_electron_loss(Zt_for_U83[i], 
                                                                 ion_beam_U83.Z_p, 
                                                                 ion_beam_U83.q, 
@@ -121,6 +119,8 @@ for i, Z_t in enumerate(Zt_for_Fe4):
                                                                 SI_units=False)
     
 ######## PLOT THE DATA ###########
+os.makedirs('output_and_plots', exist_ok=True)
+
 SMALL_SIZE = 11.5
 MEDIUM_SIZE = 15
 BIGGER_SIZE = 18
@@ -154,7 +154,8 @@ ax1.set_yscale('log')
 ax1.set_ylim(1e-21, 5e-15)
 ax1.set_xlim(7e-1, 1e2)
 legend = ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1),
-          ncol=3, fancybox=True)
+          ncol=3, fancybox=True, fontsize=11.5)
 legend.get_frame().set_alpha(None)
 fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-fig.savefig('Output/Semi_empirical_vs_exp.png', dpi=250)
+fig.savefig('output_and_plots/Semi_empirical_vs_exp.png', dpi=250)
+plt.show()

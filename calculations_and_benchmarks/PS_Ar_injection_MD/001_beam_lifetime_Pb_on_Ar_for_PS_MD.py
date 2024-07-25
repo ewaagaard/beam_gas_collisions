@@ -1,15 +1,14 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Estimate on Ar gas pressure effect on Pb ion beam lifetime in the PS 
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from beam_gas_collisions import BeamGasCollisions, Data
+import os
+from beam_gas_collisions import IonLifetimes, DataObject
 
 # Load data 
 projectile = 'Pb54'
-data = Data()
+data = DataObject()
 
 # Current lifetime and pressure
 tau0 = 1.5
@@ -22,15 +21,15 @@ p_range = np.logspace(np.log10(1e-10), np.log10(1e-7), 15) # in mbar
 
 # Calculate lifetimes and cross sections for PS
 projectile_data_PS = np.array([data.projectile_data['Z'][projectile],
-                                data.projectile_data['PS_q'][projectile],
-                                data.projectile_data['PS_Kinj'][projectile],
-                                data.projectile_data['I_p'][projectile], 
-                                data.projectile_data['n_0'][projectile], 
-                                data.projectile_data['PS_beta'][projectile]])
+                               data.projectile_data['PS_q'][projectile],
+                               data.projectile_data['PS_Kinj'][projectile],
+                               data.projectile_data['I_p'][projectile], 
+                               data.projectile_data['n_0'][projectile], 
+                               data.projectile_data['PS_beta'][projectile]])
 
 # Initiate PS beam-gas interactions
-PS_rest_gas =  BeamGasCollisions()
-PS_rest_gas.set_projectile_data(projectile_data_PS)  
+PS_rest_gas =  IonLifetimes()
+PS_rest_gas.set_projectile_data_manually(projectile_data_PS, beta_is_provided=True)  
 
 # Initiate empty lifetime array and iterate over the different pressures 
 taus_Ar = np.zeros(len(p_range))
@@ -45,6 +44,8 @@ print('\nEC cross sections: Ar = {:.3e} m-2, H2 = {:.3e} m-2'.format(sigma_EC_Ar
 print('EL cross sections: Ar = {:.3e} m-2, H2 = {:.3e} m-2'.format(sigma_EL_Ar, sigma_EL_H2))
 
 ######## PLOT THE DATA ###########
+os.makedirs('output_and_plots', exist_ok=True)
+
 SMALL_SIZE = 10
 MEDIUM_SIZE = 15
 BIGGER_SIZE = 20
@@ -69,5 +70,5 @@ ax.set_xlabel('Ar pressure [mbar]')
 ax.set_ylabel(r'Lifetime $\tau$ [s]')
 ax.legend()
 fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-fig.savefig('Output/Beamlifetime_Pb_on_Ar_in_PS.png', dpi=250)
+fig.savefig('output_and_plots/Beamlifetime_Pb_on_Ar_in_PS.png', dpi=250)
 plt.show()

@@ -17,7 +17,7 @@ data_gf = [['H2',0.83,0.9,0.905],
            ['Ar', 0., 0., 0.]]
 gas_fractions = pd.DataFrame(data_gf,columns=['Gas','LEIR','PS','SPS'])
 gas_fractions = gas_fractions.set_index('Gas')
-gas_fractions.to_csv('Gas_fractions.csv')
+gas_fractions.to_csv('gas_fractions.csv')
 
 
 ########### PRESSURE DATA - in mbar ########### 
@@ -28,7 +28,7 @@ data_pres = [['LEIR',1e-11],
              ['SPS',1e-8]]
 pressure = pd.DataFrame(data_pres, columns=['Machine','Pressure'])
 pressure = pressure.set_index('Machine')
-pressure.to_csv('Pressure_data.csv')
+pressure.to_csv('pressure_data.csv')
 
 ########### INJECTION ENERGY, BETA and PRINCIPAL QUANTUM NUMBERS ###########
 # Data frame with kinetic energy (MeV), beta and charge per machine and projectile, ionization potential(keV), princip
@@ -42,4 +42,4 @@ data_projectile =  [['He1', 4.2,67.02, 5722.74, 0.094612,0.360286,0.99,1, 1, 2, 
                     ['Pb54',4.2,72.13, 5974.37, 0.094647,0.372499,0.99,54,54,82,82,5.414,3]]
 df_projectile = pd.DataFrame(data_projectile,columns=['Projectile','LEIR_Kinj','PS_Kinj','SPS_Kinj','LEIR_beta','PS_beta','SPS_beta','LEIR_q','PS_q','SPS_q','Z','I_p','n_0'])
 df_projectile = df_projectile.set_index('Projectile')
-df_projectile.to_csv('Projectile_data.csv')
+df_projectile.to_csv('projectile_data.csv')
