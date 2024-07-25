@@ -43,9 +43,6 @@ class DataObject:
         self.pressure_data = pd.read_csv('{}/pressure_data.csv'.format(data_folder), index_col=0).T
         self.projectile_data = pd.read_csv('{}/projectile_data.csv'.format(data_folder), index_col=0)
         
-        # Fitting parameters obtained from the semi-empirical study by Weber (2016)
-        self.fitting_parameters = [10.88, 0.95, 2.5, 1.1137, -0.1805, 2.64886, 1.35832, 0.80696, 1.00514, 6.13667]
-        
         # Store machine-specific pressure and gas data
         self.pressure_pascal = self.pressure_data[machine] * 1e2 # convert mbar to Pascal (SI unit)
         self.gas_frac = self.gas_fractions_all[machine]
@@ -59,7 +56,9 @@ class IonLifetimes:
     def __init__(self, 
                  projectile='Pb54',
                  machine='PS',
-                 T=298):
+                 T=298,
+                 p=None,
+                 molecular_fraction_array=None):
         """
         Parameters
         ----------
@@ -69,24 +68,35 @@ class IonLifetimes:
             define CERN accelerator to load vacuum conditions from: 'LEIR', 'PS' or 'SPS'
         T : float
             temperature in kelvin. The default is 298.
+        p : float
+            pressure in mbar. Default is None, not needed if machine is specified
+        molecular_fraction_array : np.ndarray
+            fraction of molecular density in rest gas. Default is None, not needed if machine is specified
         """
-        if machine not in ['LEIR', 'PS', 'SPS']:
-            raise ValueError("Machine has to be 'LEIR', 'PS', or 'SPS' !")            
-
         # Beam and accelerator setting
         self.K = constants.Boltzmann
         self.T = T # temperature in Kelvin 
         self.c_light = constants.c
         self.projectile = projectile
-        self.machine = machine
-        
-        # Load data: set pressure in Pascal and molecular density
-        data = DataObject(machine)
-        self.p = data.pressure_pascal.values[0]
-        self.set_molecular_densities(data.gas_frac)
-        self.par = data.fitting_parameters # Semi-empirical fitting parameters
-        self.set_projectile_data(data)
-        print('\nProjectile initialized: {}'.format(self.projectile))
+
+        # Fitting parameters obtained from the semi-empirical study by Weber (2016)
+        self.par = [10.88, 0.95, 2.5, 1.1137, -0.1805, 2.64886, 1.35832, 0.80696, 1.00514, 6.13667]
+
+        if machine in ['LEIR', 'PS', 'SPS']:      
+            # Load machine data: set pressure in Pascal and molecular density
+            self.machine = machine
+            data = DataObject(machine)
+            self.p = data.pressure_pascal.values[0]
+            self.set_molecular_densities(data.gas_frac)
+            self.set_projectile_data(data)
+        else:
+            print("Machine has to be 'LEIR', 'PS', or 'SPS' for automatic data loading! Set pressures and molecular fractions manually!") 
+            if (p is not None) & (molecular_fraction_array is not None):
+                self.p = p
+                self.set_molecular_densities(molecular_fraction_array)
+            else:
+                raise ValueError("If machine not 'LEIR', 'PS', or 'SPS', have to provide pressure!")      
+
         print('at p = {} mbar\n'.format(self.p / 1e2))
         
     
@@ -114,7 +124,31 @@ class IonLifetimes:
                                     data.projectile_data['{}_beta'.format(self.machine)][self.projectile]])
         
         self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
-        
+        print('\nProjectile initialized: {}\n{}\n'.format(self.projectile, data.projectile_data.loc[self.projectile]))
+
+
+    def set_projectile_data_manually(self, projectile_data):
+        """
+        Sets the projectile data manually, and calculates relativistic beta
+
+        Parameters:
+        -----------
+        projectile_data : np.ndarray
+            Z_p : Z of projectile
+            q : charge of projectile.
+            e_kin : collision energy in MeV/u.
+            I_p : first ionization potential of projectile in keV
+            n_0: principal quantum number
+            m: mass of atom in Dalton (atomic unit)
+        """
+        self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.atomic_mass_in_u = projectile_data
+
+        self.mass_in_u_stripped = self.atomic_mass_in_u - (self.Z_p - self.q) * constants.physical_constants['electron mass in u'][0] 
+        self.mass_in_eV =  self.mass_in_u_stripped * constants.physical_constants['atomic mass unit-electron volt relationship'][0]
+        self.E_tot = self.mass_in_eV + 1e6*self.e_kin * self.mass_in_u_stripped# total kinetic energy in eV per particle at injection
+        self.gamma = self.E_tot/self.mass_in_eV
+        self.beta = np.sqrt(1 - 1/self.gamma**2)
+
 
     def set_molecular_densities(self, molecular_fraction_array):
         """
@@ -144,7 +178,7 @@ class IonLifetimes:
             
         # Set the molecular fractions
         x_H2, x_H2O, x_CO, x_CH4, x_CO2, x_He, x_O2, x_Ar = molecular_fraction_array
-        print('{}: molecular gas densities set to:\n{}'.format(self.machine, molecular_fraction_array))
+        print('Molecular gas densities set to:\n{}'.format(molecular_fraction_array))
         
         # Calculate the molecular density for each gas 
         self.n_H2 = self.p * x_H2 / (self.K * self.T)
