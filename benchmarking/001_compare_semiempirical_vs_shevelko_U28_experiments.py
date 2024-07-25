@@ -45,10 +45,6 @@ Olsen_E_H2 = np.array([3.5, ])
 Olsen_EC_H2 = np.array([0.048, ])
 Olsen_error_H2 = np.array([0.016])
 
-
-####
-
-
 ###### STEP 1: calculate lifetime of U28 in rest gas ######
 
 # Iterate over the different energies
@@ -139,26 +135,14 @@ ax3.errorbar([3.5, 6.5], [11.20e-18, 0.39e-18], yerr=[0.89e-18, 0.09e-18], color
 ax3.text(0.08, 0.05, r'Ar', fontsize=23, transform=ax3.transAxes)
 
 ax1.set_ylabel(r'$\sigma$ [cm$^{2}$/atom]')
-ax1.set_xlabel('E [MeV/u]')
-ax2.set_xlabel('E [MeV/u]')
-ax3.set_xlabel('E [MeV/u]')
-ax1.set_xscale('log')
-ax2.set_xscale('log')
-ax3.set_xscale('log')
-ax1.set_yscale('log')
-ax2.set_yscale('log')
-ax3.set_yscale('log')
-ax1.set_ylim(1e-20, 1e-14)
-ax2.set_ylim(1e-20, 1e-14)
-ax3.set_ylim(1e-20, 1e-14)
-ax1.set_xlim(1e-2, 1e4)
-ax2.set_xlim(1e-2, 1e4)
-ax3.set_xlim(1e-2, 1e4)
-ax1.grid()
-ax2.grid()
-ax3.grid()
-#ax1.legend()
-#ax2.legend()
+for ax in (ax1, ax2, ax3):
+    ax.set_xlabel('E [MeV/u]')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_ylim(1e-20, 1e-14)
+    ax.set_xlim(1e-2, 1e4)
+    ax.grid()
+
 ax3.legend(fontsize=10)
 fig2.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 fig2.savefig('output_and_plots/U28_EC_EL_cross_section_comparison_plot.png', dpi=250)
