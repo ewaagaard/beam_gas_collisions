@@ -18,7 +18,7 @@ PS_rest_gas = IonLifetimes(projectile=projectile, machine='PS')
 SPS_rest_gas =  IonLifetimes(projectile=projectile, machine='SPS')
 
 # Initiate empty arrays for all ion species
-data = DataObject()
+data = DataObject(use_full_data=True)  #otherwise use initial projectiles
 tau_values_LEIR = np.zeros(len(data.projectile_data.T.columns))
 tau_values_PS = np.zeros(len(data.projectile_data.T.columns))
 tau_values_SPS = np.zeros(len(data.projectile_data.T.columns))
@@ -122,6 +122,12 @@ ax.legend()
 fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 fig.savefig('plots_and_output/LEIR_PS_SPS_full_lifetime_plot_compact.png', dpi=250)
     
+# Make dataframe and save to csv
+tau_dict = {'LEIR': tau_values_LEIR, 
+            'PS': tau_values_PS,
+            'SPS': tau_values_SPS}
+df_tau = pd.DataFrame(tau_dict, index=data.projectile_data.index)
+df_tau.to_csv('plots_and_output/lifetimes_all.csv')
     
 # Plot the cross sections of each projectile on H2 (first column)
 bar_width = 0.25

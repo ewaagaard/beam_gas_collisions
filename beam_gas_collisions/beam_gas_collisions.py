@@ -26,7 +26,7 @@ class DataObject:
     """
     Data container for projectile, pressure and gas data
     """
-    def __init__(self, machine='PS'):
+    def __init__(self, machine='PS', use_full_data=True):
         """
         Loads and stores data for desired accelertor
         
@@ -34,14 +34,18 @@ class DataObject:
         ----------
         machine : str
             Which CERN accelerator to load vacuum conditions from: 'LEIR', 'PS' or 'SPS'
+        use_full_data : bool
+            whether to load initial projectile data, or all considered ion species for the Injector model
         """
         if machine not in ['LEIR', 'PS', 'SPS']:
             raise ValueError("Machine has to be 'LEIR', 'PS', or 'SPS' !")
         
-        # Load full data
+        # Load projectile, machine and gas data
         self.gas_fractions_all = pd.read_csv('{}/gas_fractions.csv'.format(data_folder), index_col=0)
         self.pressure_data = pd.read_csv('{}/pressure_data.csv'.format(data_folder), index_col=0).T
-        self.projectile_data = pd.read_csv('{}/projectile_data.csv'.format(data_folder), index_col=0)
+        
+        data_str = '_full' if use_full_data else ''
+        self.projectile_data = pd.read_csv('{}/projectile_data{}.csv'.format(data_folder, data_str), index_col=0)
         
         # Fitting parameters obtained from the semi-empirical study by Weber (2016)
         self.fitting_parameters = [10.88, 0.95, 2.5, 1.1137, -0.1805, 2.64886, 1.35832, 0.80696, 1.00514, 6.13667]
