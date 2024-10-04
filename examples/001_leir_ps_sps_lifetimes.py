@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import re
 from beam_gas_collisions import IonLifetimes, DataObject
 
 os.makedirs('plots_and_output', exist_ok=True)
@@ -106,26 +107,40 @@ gas_fractions_data = data.gas_fractions_all.loc[(data.gas_fractions_all!=0).any(
 ######## PLOT THE DATA ###########
 x = np.arange(len(data.projectile_data.index))
 
-bar_width = 0.25
-fig, ax = plt.subplots(1, 1, figsize = (11,5))
+# Function to convert to LaTeX-style charge states
+def convert_to_charge_state(label):
+    # Split the label into element and charge state using regex
+    match = re.match(r"([A-Za-z]+)(\d+)", label)
+    if match:
+        element = match.group(1)
+        charge = match.group(2)
+        # Return the element and the LaTeX superscript for charge
+        return f"{element}$^{{{charge}+}}$"
+
+# Apply the function to each label in the index
+latex_labels = [convert_to_charge_state(label) for label in data.projectile_data.index]
+
+
+bar_width = 0.21
+fig, ax = plt.subplots(1, 1, figsize = (13,5.8))
 bar1 = ax.bar(x - 1.15*bar_width, tau_values_LEIR, bar_width, color='cyan', label='LEIR') #
 bar2 = ax.bar(x, tau_values_PS, bar_width, color='red', label='PS') #
-bar3 = ax.bar(x + 1.15*bar_width, tau_values_SPS, bar_width, color='forestgreen', label='SPS') #
+bar3 = ax.bar(x + 1.15*bar_width, tau_values_SPS, bar_width, color='limegreen', label='SPS') #
 ax.bar_label(bar1, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_LEIR], padding=3, color='black', fontsize=10) 
 ax.bar_label(bar2, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_PS], padding=3, color='black', fontsize=10) 
 ax.bar_label(bar3, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_SPS], padding=3, color='black', fontsize=10) 
 ax.set_yscale('log')
 ax.set_xticks(x)
-ax.set_xticklabels(data.projectile_data.index)
+ax.set_xticklabels(latex_labels)
 ax.set_ylabel(r"Lifetime $\tau$ [s]")
 ax.legend()
-fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+fig.tight_layout()#pad=0.4, w_pad=0.5, h_pad=1.0)
 fig.savefig('plots_and_output/LEIR_PS_SPS_full_lifetime_plot_compact.png', dpi=250)
     
     
 # Plot the cross sections of each projectile on H2 (first column)
 bar_width = 0.25
-fig2, ax2 = plt.subplots(1, 1, figsize = (11,5))
+fig2, ax2 = plt.subplots(1, 1, figsize = (13,5.8))
 #fig2.suptitle('Projectile cross sections on H2', fontsize=18)
 bar11 = ax2.bar(x - 1.15*bar_width, df_sigmas_EL_LEIR[:][0], bar_width, hatch='//', color='royalblue', label='LEIR EL') #
 bar12 = ax2.bar(x - 1.15*bar_width, df_sigmas_EC_LEIR[:][0], bar_width, color='cyan', hatch='\\',  alpha=0.65, label='LEIR EC') #
@@ -135,10 +150,10 @@ bar31 = ax2.bar(x + 1.15*bar_width, df_sigmas_EL_SPS[:][0], bar_width, color='fo
 bar32 = ax2.bar(x + 1.15*bar_width, df_sigmas_EC_SPS[:][0], bar_width, color='lime', alpha=0.8, label='SPS EC') #
 ax2.set_yscale('log')
 ax2.set_xticks(x)
-ax2.set_xticklabels(data.projectile_data.index)
+ax2.set_xticklabels(latex_labels)
 ax2.set_ylabel(r"Cross section $\sigma$ [m$^{2}$]")
 ax2.legend(fontsize=11)
-fig2.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+fig2.tight_layout()#pad=0.4, w_pad=0.5, h_pad=1.0)
 fig2.savefig('plots_and_output/Cross_sections_on_H2.png', dpi=250)
 
 
@@ -147,7 +162,7 @@ x3 = np.arange(len(gas_fractions_data.index))
 fig3, ax3 = plt.subplots(1, 1, figsize = (11,5))
 bar13 = ax3.bar(x3 - 1.15*bar_width, gas_fractions_data['LEIR'], bar_width, color='cyan', label='LEIR: P = {:.1e} mbar'.format(data.pressure_data['LEIR'].values[0])) #
 bar23 = ax3.bar(x3, gas_fractions_data['PS'], bar_width, color='red', label='PS:     P = {:.1e} mbar'.format(data.pressure_data['PS'].values[0])) #
-bar33 = ax3.bar(x3 + 1.15*bar_width, gas_fractions_data['SPS'], bar_width, color='forestgreen', label='SPS:   P = {:.1e} mbar'.format(data.pressure_data['SPS'].values[0])) #
+bar33 = ax3.bar(x3 + 1.15*bar_width, gas_fractions_data['SPS'], bar_width, color='limegreen', label='SPS:   P = {:.1e} mbar'.format(data.pressure_data['SPS'].values[0])) #
 ax3.bar_label(bar13, labels=[f'{e:,.1e}'.replace('+0', '') for e in gas_fractions_data['LEIR']], padding=3, color='black', fontsize=9) 
 ax3.bar_label(bar23, labels=[f'{e:,.1e}'.replace('+0', '') for e in gas_fractions_data['PS']], padding=3, color='black', fontsize=9) 
 ax3.bar_label(bar33, labels=[f'{e:,.1e}'.replace('+0', '') for e in gas_fractions_data['SPS']], padding=3, color='black', fontsize=9) 
