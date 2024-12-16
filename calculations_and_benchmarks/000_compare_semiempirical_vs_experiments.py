@@ -17,7 +17,7 @@ df = df.dropna(how='all')
 
 projectile_data_Fe4 = np.array([26,
                                 4.,  
-                                0.36,  # in MeV/u
+                                0.36, # in MeV/u --> 0.36 was written in Geunter's file, but 20 MeV in the reference --> where did he get the data from?
                                 1e-3 * 75.0,  # from NIST table
                                 3,  # from NIST table
                                 55.934935  # most abundant isotope atomic_mass_in_u, from AME2016 Table 
