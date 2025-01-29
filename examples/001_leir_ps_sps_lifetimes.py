@@ -122,7 +122,7 @@ latex_labels = [convert_to_charge_state(label) for label in data.projectile_data
 
 
 bar_width = 0.21
-fig, ax = plt.subplots(1, 1, figsize = (13,5.8))
+fig, ax = plt.subplots(1, 1, figsize = (13,5.8), constrained_layout=True)
 bar1 = ax.bar(x - 1.15*bar_width, tau_values_LEIR, bar_width, color='cyan', label='LEIR') #
 bar2 = ax.bar(x, tau_values_PS, bar_width, color='red', label='PS') #
 bar3 = ax.bar(x + 1.15*bar_width, tau_values_SPS, bar_width, color='limegreen', label='SPS') #
@@ -134,13 +134,13 @@ ax.set_xticks(x)
 ax.set_xticklabels(latex_labels)
 ax.set_ylabel(r"Lifetime $\tau$ [s]")
 ax.legend()
-fig.tight_layout()#pad=0.4, w_pad=0.5, h_pad=1.0)
+plt.grid(alpha=0.55)
 fig.savefig('plots_and_output/LEIR_PS_SPS_full_lifetime_plot_compact.png', dpi=250)
     
     
 # Plot the cross sections of each projectile on H2 (first column)
 bar_width = 0.25
-fig2, ax2 = plt.subplots(1, 1, figsize = (13,5.8))
+fig2, ax2 = plt.subplots(1, 1, figsize = (13,5.8), constrained_layout=True)
 #fig2.suptitle('Projectile cross sections on H2', fontsize=18)
 bar11 = ax2.bar(x - 1.15*bar_width, df_sigmas_EL_LEIR[:][0], bar_width, hatch='//', color='royalblue', label='LEIR EL') #
 bar12 = ax2.bar(x - 1.15*bar_width, df_sigmas_EC_LEIR[:][0], bar_width, color='cyan', hatch='\\',  alpha=0.65, label='LEIR EC') #
@@ -153,13 +153,13 @@ ax2.set_xticks(x)
 ax2.set_xticklabels(latex_labels)
 ax2.set_ylabel(r"Cross section $\sigma$ [m$^{2}$]")
 ax2.legend(fontsize=11)
-fig2.tight_layout()#pad=0.4, w_pad=0.5, h_pad=1.0)
+plt.grid(alpha=0.55)
 fig2.savefig('plots_and_output/Cross_sections_on_H2.png', dpi=250)
 
 
 # Make plot of different gas fractions
 x3 = np.arange(len(gas_fractions_data.index))
-fig3, ax3 = plt.subplots(1, 1, figsize = (11,5))
+fig3, ax3 = plt.subplots(1, 1, figsize = (11,5), constrained_layout=True)
 bar13 = ax3.bar(x3 - 1.15*bar_width, gas_fractions_data['LEIR'], bar_width, color='cyan', label='LEIR: P = {:.1e} mbar'.format(data.pressure_data['LEIR'].values[0])) #
 bar23 = ax3.bar(x3, gas_fractions_data['PS'], bar_width, color='red', label='PS:     P = {:.1e} mbar'.format(data.pressure_data['PS'].values[0])) #
 bar33 = ax3.bar(x3 + 1.15*bar_width, gas_fractions_data['SPS'], bar_width, color='limegreen', label='SPS:   P = {:.1e} mbar'.format(data.pressure_data['SPS'].values[0])) #
@@ -171,6 +171,6 @@ ax3.set_xticklabels(gas_fractions_data.index)
 ax3.set_ylabel(r"Rest gas fraction")
 ax3.legend()
 #ax3.set_yscale('log')
-fig3.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+plt.grid(alpha=0.55)
 fig3.savefig('plots_and_output/LEIR_PS_SPS_gas_composition.png', dpi=250)
 plt.show()
