@@ -151,7 +151,7 @@ bar32 = ax2.bar(x + 1.15*bar_width, df_sigmas_EC_SPS[:][0], bar_width, color='li
 ax2.set_yscale('log')
 ax2.set_xticks(x)
 ax2.set_xticklabels(latex_labels)
-ax2.set_ylabel(r"Cross section $\sigma$ [m$^{2}$]")
+ax2.set_ylabel(r"Cross section $\sigma$ on H$_{2}$ [m$^{2}$]")
 ax2.legend(fontsize=11)
 plt.grid(alpha=0.55)
 fig2.savefig('plots_and_output/Cross_sections_on_H2.png', dpi=250)
