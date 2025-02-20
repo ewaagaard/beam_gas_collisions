@@ -504,3 +504,40 @@ class IonLifetimes:
         # Return the non-zero fractions and cross sections
         return non_zero_sigmas_EL, non_zero_sigmas_EC, non_zero_fractions
     
+
+    def calculate_emittance_growth_rate(self, plane='x'):
+        """
+        Calculates the normalized RMS emittance growth rate due to multiple Coulomb scattering
+        
+        Parameters
+        ----------
+        plane : str
+            Transverse plane for calculation ('x' or 'y'). Default is 'x'.
+            
+        Returns
+        -------
+        d_epsilon_dt : float
+            Emittance growth rate in [m rad/s]
+        """
+        if not hasattr(self, 'beta'):
+            raise ValueError("Projectile beta must be set first!")
+        
+        # Classical proton radius
+        r_p = constants.physical_constants['classical proton radius'][0]
+        
+        # Get average beta function for specified plane
+        beta_u = self.data.beta_functions[f'beta_{plane}'][self.machine]
+        
+        # Calculate relativistic factors
+        gamma_r = 1/np.sqrt(1 - self.beta**2)
+        
+        # Calculate for each gas component and sum
+        d_epsilon_dt = 0
+        for Z_t, n_t in zip([1, 1, 6, 6, 6, 2, 8, 18], self.fractions):
+            if n_t > 0:
+                d_epsilon_dt += 2 * np.pi * gamma_r * beta_u * n_t * self.beta * constants.c * \
+                              (2 * self.Z_p * Z_t * r_p / (self.atomic_mass_in_u * self.beta**2 * gamma_r))**2 * \
+                              np.log(204 * Z_t**(-1/3))
+        
+        return d_epsilon_dt
+    
