@@ -333,44 +333,81 @@ class IonLifetimes:
     def calculate_lifetime_on_single_gas(self, p, Z_t, atomicity=1):
         """
         Calculates beam lifetime from electron loss and electron capture from beam gas
-        interactions with a single gas 
+        interactions with a single gas species.
         
         Parameters
         ----------
-        p : pressure in beam pipe in millibar 
-        Z_t : Z of target
-        atomicity : number of atoms per molecule
+        p : float
+            Pressure in beam pipe [mbar]
+        Z_t : float
+            Atomic number of target gas
+        atomicity : int, optional
+            Number of atoms per molecule (default=1)
 
         Returns
         -------
-        tau_tot, sigma_EL, sigma_EC : float
-            total lifetime tau in seconds, cross sections of EL and EC
+        tau_tot : float
+            Total lifetime [s]
+        sigma_EL : float
+            Electron loss cross section [m^2]
+        sigma_EC : float
+            Electron capture cross section [m^2]
         """  
         # Find molecular density from pressure
-        p_SI =  p*1e2 # convert mbar to Pascal (SI) 
-        n = p_SI / (self.K * self.T)
+        n = self._pressure_to_density(p)
         
-        # Cross sections
-        sigma_EL = atomicity * self.calculate_sigma_electron_loss(Z_t, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
-        e_kin_keV = self.e_kin * 1e3 # convert MeV to keV 
-        sigma_EC = atomicity * self.calculate_sigma_electron_capture(Z_t, self.q, e_kin_keV, SI_units=True)
-    
-        # Lifetimes
+        # Calculate cross sections
+        sigma_EL = atomicity * self.calculate_sigma_electron_loss(Z_t, self.Z_p, self.q, 
+                                                                self.e_kin, self.I_p, 
+                                                                self.n_0, SI_units=True)
+        sigma_EC = atomicity * self.calculate_sigma_electron_capture(Z_t, self.q, 
+                                                                   self.e_kin * 1e3, 
+                                                                   SI_units=True)
+        
+        # Calculate total lifetime
+        tau_tot = self._calculate_lifetime_from_cross_sections(sigma_EL, sigma_EC, n)
+        return tau_tot, sigma_EL, sigma_EC
+
+    def _pressure_to_density(self, p):
+        """Convert pressure in mbar to molecular density in m^-3"""
+        p_SI = p * 1e2  # convert mbar to Pascal (SI)
+        return p_SI / (self.K * self.T)
+
+    def _calculate_lifetime_from_cross_sections(self, sigma_EL, sigma_EC, n):
+        """Calculate total lifetime from cross sections and density"""
         tau_EL = 1.0/(sigma_EL * n * self.beta * self.c_light)
         tau_EC = 1.0/(sigma_EC * n * self.beta * self.c_light)
-        tau_tot_inv = 1/tau_EL + 1/tau_EC
-        tau_tot = 1/tau_tot_inv 
-        return tau_tot, sigma_EL, sigma_EC
+        return 1.0/(1/tau_EL + 1/tau_EC)
     
     
     def calculate_total_lifetime_full_gas(self):
         """
-        Calculates beam lifetime contributions for electron loss and electron capture from beam gas
-        interactions with all compound gases
-        
-        Returns
-        -------
-        Total lifetime tau in seconds
+    Calculate total beam lifetime considering all gas species present in the 
+    accelerator, including both electron loss and electron capture effects.
+    
+    The lifetime is calculated using:
+        tau = 1 / (n * sigma * beta * c)
+    where:
+        - n is the molecular density
+        - sigma is the total cross section (EC + EL)
+        - beta is the relativistic beta factor
+        - c is the speed of light
+    
+    Returns
+    -------
+    float
+        Total beam lifetime in seconds
+    
+    Notes
+    -----
+    The calculation uses the gas fractions and pressure stored in the object,
+    which must be set either through the constructor or manually before calling
+    this method.
+    
+    Examples
+    --------
+    >>> beam = IonLifetimes(projectile='Pb54', machine='PS')
+    >>> tau = beam.calculate_total_lifetime_full_gas()
         """
         # Atomic numbers of relevant gasess
         Z_H = 1.0
