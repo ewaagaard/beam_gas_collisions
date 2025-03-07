@@ -103,7 +103,8 @@ class IonLifetimes:
     def set_projectile_data(self, data):
         """
         Sets the projectile data:
-            Z_p : Z of projectile
+            Z_p : atomic number Z of projectile
+            A_p : mass number A of projectile
             q : charge of projectile.
             e_kin : collision energy in MeV/u.
             I_p : first ionization potential of projectile in keV
@@ -117,13 +118,14 @@ class IonLifetimes:
         data : DataObject
         """
         projectile_data = np.array([data.projectile_data['Z'][self.projectile],
+                                    data.projectile_data['A'][self.projectile],
                                     data.projectile_data['{}_q'.format(self.machine)][self.projectile],
                                     data.projectile_data['{}_Kinj'.format(self.machine)][self.projectile],
                                     data.projectile_data['I_p'][self.projectile], 
                                     data.projectile_data['n_0'][self.projectile], 
                                     data.projectile_data['{}_beta'.format(self.machine)][self.projectile]])
         
-        self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
+        self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
         print('\nProjectile initialized: {}\n{}\n'.format(self.projectile, data.projectile_data.loc[self.projectile]))
 
 
@@ -134,7 +136,8 @@ class IonLifetimes:
         Parameters:
         -----------
         projectile_data : np.ndarray
-            Z_p : Z of projectile
+            Z_p : atomic number Z of projectile
+            A_p : mass number A of projectile
             q : charge of projectile.
             e_kin : collision energy in MeV/u.
             I_p : first ionization potential of projectile in keV
@@ -144,9 +147,9 @@ class IonLifetimes:
             whether relativistic beta is given, or only the atomic mass. Default is False.
         """
         if beta_is_provided:
-            self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
+            self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
         else:
-            self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, self.atomic_mass_in_u = projectile_data
+            self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.atomic_mass_in_u = projectile_data
 
             self.mass_in_u_stripped = self.atomic_mass_in_u - (self.Z_p - self.q) * constants.physical_constants['electron mass in u'][0] 
             self.mass_in_eV =  self.mass_in_u_stripped * constants.physical_constants['atomic mass unit-electron volt relationship'][0]
@@ -542,9 +545,52 @@ class IonLifetimes:
         return non_zero_sigmas_EL, non_zero_sigmas_EC, non_zero_fractions
     
 
-    def calculate_emittance_growth_rate(self, plane='x'):
+class BeamGasCollisions(IonLifetimes):
+    """
+    Class object to represent inelastic nuclear collisions and elastic Coulomb scattering,
+    which are other processed possibly contributing to deteriorated beam lifetime
+    """
+    
+    def __init__(self, 
+                 projectile='Pb54',
+                 machine='PS',
+                 T=298,
+                 p=None,
+                 molecular_fraction_array=None):
+        
+        super().__init__(projectile=projectile, machine=machine, T=T, 
+                         p=p, molecular_fraction_array=molecular_fraction_array)  # instantiate Ion Lifetime class
+        
+        # Define required constants
+        self.r0 = 1.35e-15 # from Westfall (1979)
+        self.b0 = 0.83
+        
+        
+    def compute_inelastic_nuclear_cross_sections(self, A_p : float, A_t : float):
         """
-        Calculates the normalized RMS emittance growth rate due to multiple Coulomb scattering
+        Nuclear collision cross section from Bradt-Peters formula (1950)
+        
+        Parameters
+        ----------
+        A_p : float
+            Projectile mass number
+        A_t : float
+            Target mass number
+            
+        Returns:
+        -------
+        sigma_n : float
+            total inelastic nuclear collision cross section 
+        """
+        A_eff = 0.089 if A_t == 1.0 else A_t
+        
+        sigma_n = np.pi * self.r0**2 * (A_p**(1/3) + A_eff**(1/3) - self.b0)**2
+        return sigma_n
+
+
+    def calculate_elastic_emittance_growth_rate(self, plane='x'):
+        """
+        Calculates the normalized RMS emittance growth rate due to multiple elastic Coulomb scattering
         
         Parameters
         ----------
@@ -577,4 +623,3 @@ class IonLifetimes:
                               np.log(204 * Z_t**(-1/3))
         
         return d_epsilon_dt
-    

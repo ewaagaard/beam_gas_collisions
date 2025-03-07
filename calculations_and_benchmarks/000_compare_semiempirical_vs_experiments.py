@@ -15,7 +15,8 @@ df = df.dropna(how='all')
 ### Define projectile data - Z_p : Z of projectile, q : charge of projectile, e_kin : collision energy in MeV/u.
 # I_p : first ionization potential of projectile in keV, n_0: principal quantum number
 
-projectile_data_Fe4 = np.array([26,
+projectile_data_Fe4 = np.array([26.,
+                                56.,
                                 4.,  
                                 0.36, # in MeV/u --> 0.36 was written in Geunter's file, but 20 MeV in the reference --> where did he get the data from?
                                 1e-3 * 75.0,  # from NIST table
@@ -26,6 +27,7 @@ Zt_for_Fe4 = np.logspace(np.log10(2.0), np.log10(54), 5)   #np.array([2., 7., 10
 ion_beam_Fe4 = IonLifetimes()
 
 projectile_data_Xe18 = np.array([54.,
+                                 132.,
                                 18.,  
                                 6.0,  # in MeV/u
                                 0.549,  # from NIST table
@@ -37,6 +39,7 @@ ion_beam_Xe18 = IonLifetimes()
 
 
 projectile_data_Au52 = np.array([79.,
+                                 197,
                                 52.,  
                                 100.0,  # in MeV/u
                                 5.013,  # from NIST table
@@ -47,6 +50,7 @@ Zt_for_Au52 = np.logspace(np.log10(1.0), np.log10(8.), 5)
 ion_beam_Au52 = IonLifetimes()
 
 projectile_data_Xe45 = np.array([54.,
+                                 132.,
                                 45.,  
                                 140.0,  # in MeV/u
                                 7.889,  # from NIST table
@@ -57,6 +61,7 @@ Zt_for_Xe45 = np.logspace(np.log10(6.0), np.log10(80.), 5)
 ion_beam_Xe45 = IonLifetimes()
 
 projectile_data_U83 = np.array([92.,
+                                238.,
                                 83.,  
                                 955.,  # in MeV/u
                                 25.680,  # from NIST table

@@ -1,1 +1,1 @@
-from .beam_gas_collisions import IonLifetimes, DataObject
+from .beam_gas_collisions import IonLifetimes, DataObject, BeamGasCollisions
