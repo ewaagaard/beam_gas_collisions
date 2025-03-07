@@ -132,7 +132,7 @@ ax.bar_label(bar3, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_SPS
 ax.set_yscale('log')
 ax.set_xticks(x)
 ax.set_xticklabels(latex_labels)
-ax.set_ylabel(r"Lifetime $\tau$ [s]")
+ax.set_ylabel(r"Beam lifetime $\tau$ [s]")
 ax.legend()
 plt.grid(alpha=0.55)
 fig.savefig('plots_and_output/LEIR_PS_SPS_full_lifetime_plot_compact.png', dpi=250)

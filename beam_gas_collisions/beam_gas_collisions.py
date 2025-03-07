@@ -385,32 +385,32 @@ class IonLifetimes:
     
     def calculate_total_lifetime_full_gas(self):
         """
-    Calculate total beam lifetime considering all gas species present in the 
-    accelerator, including both electron loss and electron capture effects.
-    
-    The lifetime is calculated using:
-        tau = 1 / (n * sigma * beta * c)
-    where:
-        - n is the molecular density
-        - sigma is the total cross section (EC + EL)
-        - beta is the relativistic beta factor
-        - c is the speed of light
-    
-    Returns
-    -------
-    float
-        Total beam lifetime in seconds
-    
-    Notes
-    -----
-    The calculation uses the gas fractions and pressure stored in the object,
-    which must be set either through the constructor or manually before calling
-    this method.
-    
-    Examples
-    --------
-    >>> beam = IonLifetimes(projectile='Pb54', machine='PS')
-    >>> tau = beam.calculate_total_lifetime_full_gas()
+        Calculate total beam lifetime considering all gas species present in the 
+        accelerator, including both electron loss and electron capture effects.
+        
+        The lifetime is calculated using:
+            tau = 1 / (n * sigma * beta * c)
+        where:
+            - n is the molecular density
+            - sigma is the total cross section (EC + EL)
+            - beta is the relativistic beta factor
+            - c is the speed of light
+        
+        Returns
+        -------
+        float
+            Total beam lifetime in seconds
+        
+        Notes
+        -----
+        The calculation uses the gas fractions and pressure stored in the object,
+        which must be set either through the constructor or manually before calling
+        this method.
+        
+        Examples
+        --------
+        >>> beam = IonLifetimes(projectile='Pb54', machine='PS')
+        >>> tau = beam.calculate_total_lifetime_full_gas()
         """
         # Atomic numbers of relevant gasess
         Z_H = 1.0
@@ -586,6 +586,95 @@ class BeamGasCollisions(IonLifetimes):
         
         sigma_n = np.pi * self.r0**2 * (A_p**(1/3) + A_eff**(1/3) - self.b0)**2
         return sigma_n
+
+
+    def get_lifetimes_from_nuclear_collisions(self):
+        """
+        Compute total beam lifetimes from inelastic nuclear collision cross sections with target nuclei
+
+        Returns
+        -------
+        tau_tot : float
+            total beam lifetime in seconds due to these processes
+        N_dict : dict
+            dictionary with sigma_N and gas fractions for non-zero values 
+        """
+        
+        # Atomic numbers of relevant gasess
+        A_H = 1.0
+        A_He = 4.0
+        A_C = 12.0
+        A_O = 16.0
+        A_Ar = 40.0
+          
+        # Sum nucleon of molecular targets for very rough approximation for Bradt-Peters formula, neglects molecular structure and
+        # shadowing. Real cross section is most likely about a few percent higher for PS energy ranges (where they may be some nuclear 
+        # resonances according to https://www.sciencedirect.com/science/article/pii/S0273117711007897)
+        A_H2 = 2.0 * A_H
+        A_H2O = 2.0 * A_H + A_O
+        A_CO = A_C + A_O
+        A_CH4 = A_C + 4.0 * A_H
+        A_CO2 = A_C + 2.0 * A_O
+        A_O2 = 2.0 * A_O
+
+        # Compute cross section on targets
+        targets = ['H2', 'He', 'H20', 'H20', 'CO', 'CH4', 'CO2', 'O2', 'Ar']
+        self.sigma_H2_N = self.compute_inelastic_nuclear_cross_sections(self.A_p, A_H2)
+        self.sigma_He_N = self.compute_inelastic_nuclear_cross_sections(self.A_p, A_He)
+        self.sigma_H2O_N = self.compute_inelastic_nuclear_cross_sections(self.A_p, A_H2O)
+        self.sigma_CO_N = self.compute_inelastic_nuclear_cross_sections(self.A_p, A_CO)
+        self.sigma_CH4_N = self.compute_inelastic_nuclear_cross_sections(self.A_p, A_CH4)
+        self.sigma_CO2_N = self.compute_inelastic_nuclear_cross_sections(self.A_p, A_CO2)
+        self.sigma_O2_N =  self.compute_inelastic_nuclear_cross_sections(self.A_p, A_O2)
+        self.sigma_Ar_N = self.compute_inelastic_nuclear_cross_sections(self.A_p, A_Ar)
+        
+        # All sigmas for electron loss and electron capture
+        sigmas_N = np.array([self.sigma_H2_N, self.sigma_H2O_N, self.sigma_CO_N, 
+                             self.sigma_CH4_N, self.sigma_CO2_N, self.sigma_He_N, 
+                             self.sigma_O2_N, self.sigma_Ar_N])
+        
+        # Create a list to store the non-zero fractions and corresponding cross sections
+        non_zero_fractions = []
+        non_zero_sigmas_N = []
+        non_zero_target = []
+
+        # Iterate over the fractions and cross sections
+        for fraction, sigma_N, target in zip(self.fractions, sigmas_N, targets):
+            # Check if the fraction is non-zero
+            if fraction != 0:
+                # Append the non-zero fraction and corresponding cross sections to the respective lists
+                non_zero_fractions.append(fraction)
+                non_zero_sigmas_N.append(sigma_N)
+                non_zero_target.append(target)
+
+        # Convert fractions to dictionary
+        N_dict = {'Sigma_N': non_zero_sigmas_N, 'Targets': non_zero_target, 'Fraction': non_zero_fractions} 
+    
+
+        # Estimate the EL lifetime for collision with each gas type - if no gas or zero EL cross section, set lifetime to infinity
+        tau_H2_N = 1.0/(self.sigma_H2_N *self.n_H2*self.beta*self.c_light) if self.n_H2 and self.sigma_H2_N != 0.0 else np.inf
+        tau_He_N = 1.0/(self.sigma_He_N *self.n_He*self.beta*self.c_light) if self.n_He and self.sigma_He_N != 0.0 else np.inf 
+        tau_H2O_N = 1.0/(self.sigma_H2O_N *self.n_H2O*self.beta*self.c_light) if self.n_H2O and self.sigma_H2O_N != 0.0 else np.inf 
+        tau_CO_N = 1.0/(self.sigma_CO_N *self.n_CO*self.beta*self.c_light) if self.n_CO and self.sigma_CO_N != 0.0 else np.inf 
+        tau_CH4_N = 1.0/(self.sigma_CH4_N *self.n_CH4*self.beta*self.c_light) if self.n_CH4 and self.sigma_CH4_N != 0.0 else np.inf 
+        tau_CO2_N = 1.0/(self.sigma_CO2_N *self.n_CO2*self.beta*self.c_light) if self.n_CO2 and self.sigma_CO2_N != 0.0 else np.inf
+        tau_O2_N = 1.0/(self.sigma_O2_N *self.n_O2*self.beta*self.c_light) if self.n_O2 and self.sigma_O2_N != 0.0 else np.inf
+        tau_Ar_N = 1.0/(self.sigma_Ar_N *self.n_Ar*self.beta*self.c_light) if self.n_Ar and self.sigma_Ar_N != 0.0 else np.inf
+        
+        # Calculate the total cross section
+        tau_tot_inv = 1/tau_H2_N + 1/tau_He_N + 1/tau_H2O_N + 1/tau_CO_N + 1/tau_CH4_N \
+                    + 1/tau_CO2_N + 1/tau_O2_N + 1/tau_Ar_N 
+        tau_tot = 1/tau_tot_inv
+        
+        sigmas_N_all = [self.sigma_H2_N, self.sigma_He_N, self.sigma_H2O_N, self.sigma_CO_N, self.sigma_CH4_N, self.sigma_CO2_N, self.sigma_O2_N, self.sigma_Ar_N]
+        tau_N_all = [tau_H2_N, tau_He_N, tau_H2O_N, tau_CO_N, tau_CH4_N, tau_CO2_N, tau_O2_N, tau_Ar_N]
+        print(f'\nCross sections with projectile {self.projectile}:')
+        for i, sigma in enumerate(sigmas_N_all):
+            if tau_N_all[i] != np.inf:
+                print('{}: {:.4e} m^2, with tau = {:.4e}'.format(targets[i], sigma, tau_N_all[i]))
+        print('--------------------------')
+            
+        return tau_tot, N_dict
 
 
     def calculate_elastic_emittance_growth_rate(self, plane='x'):
