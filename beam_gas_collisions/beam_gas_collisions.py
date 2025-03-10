@@ -116,7 +116,7 @@ class IonLifetimes:
             else:
                 raise ValueError("If machine not 'LEIR', 'PS', or 'SPS', have to provide pressure!")      
 
-        print('\nProjectile {} for machine {} at p = {} mbar\n'.format(self.projectile, self.machine, self.p / 1e2))
+        print('\nProjectile {} at p = {} mbar\n'.format(self.projectile, self.p / 1e2))
         
     
     def set_projectile_data(self, data):
@@ -128,8 +128,8 @@ class IonLifetimes:
             e_kin : collision energy in MeV/u.
             I_p : first ionization potential of projectile in keV
             n_0: principal quantum number
-            Can either provide: beta or m
-                beta: relativistic beta 
+            Can either provide: gamma or m
+                gamma: relativistic gamma 
                 m: mass of atom in Dalton (atomic unit)
                 
         Parameters:
@@ -142,14 +142,14 @@ class IonLifetimes:
                                     data.projectile_data['{}_Kinj'.format(self.machine)][self.projectile],
                                     data.projectile_data['I_p'][self.projectile], 
                                     data.projectile_data['n_0'][self.projectile], 
-                                    data.projectile_data['{}_beta'.format(self.machine)][self.projectile]])
+                                    data.projectile_data['{}_gamma'.format(self.machine)][self.projectile]])
         
-        self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
-        self.gamma = data.projectile_data['{}_gamma'.format(self.machine)][self.projectile] # more exact
+        self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.gamma = projectile_data
+        self.beta = np.sqrt(1 - 1/self.gamma**2)
         print('\nProjectile initialized: {}\n{}\n'.format(self.projectile, data.projectile_data.loc[self.projectile]))
 
 
-    def set_projectile_data_manually(self, projectile_data, beta_is_provided=False):
+    def set_projectile_data_manually(self, projectile_data, gamma_is_provided=False):
         """
         Sets the projectile data manually, and calculates relativistic beta
 
@@ -163,11 +163,11 @@ class IonLifetimes:
             I_p : first ionization potential of projectile in keV
             n_0: principal quantum number
             m: mass of atom in Dalton (atomic unit)
-        beta_is_provided: bool
-            whether relativistic beta is given, or only the atomic mass. Default is False.
+        gamma_is_provided: bool
+            whether relativistic gamma is given, or only the atomic mass. Default is False.
         """
-        if beta_is_provided:
-            self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
+        if gamma_is_provided:
+            self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.gamma = projectile_data
         else:
             self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.atomic_mass_in_u = projectile_data
 

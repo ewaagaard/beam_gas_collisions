@@ -15,6 +15,7 @@ ion_beam_U28 = IonLifetimes(machine=None, p=p, molecular_fraction_array=gas_frac
 
 # Projectile_data
 Z_p = 92.
+A_p = 238.
 q_p = 28.
 Ip = 0.93
 n0 = 5.0 # from physics.nist.gov
@@ -52,6 +53,7 @@ for i, E_kin in enumerate(energies_kin_inj):
 
     # Calculate lifetimes and cross sections for LEIR 
     projectile_data_U28 = np.array([Z_p,
+                                    A_p,
                                     q_p,  
                                     E_kin,  # in MeV/u
                                     Ip, 
