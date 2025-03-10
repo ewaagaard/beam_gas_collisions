@@ -721,10 +721,23 @@ class BeamGasCollisions(IonLifetimes):
             raise ValueError("Projectile beta must be set first!")
         
         
-        # Classical proton radius
-        r_p = constants.physical_constants['classical proton radius'][0]
-                
+        
+        # Compute mass - if not provided, approximate from numbers of nucleons
+        if hasattr(self, 'atomic_mass_in_u '):
+            mass_in_u = self.atomic_mass_in_u
+        else:
+            mass_in_u = self.A_p
+        mass0_in_kg =  mass_in_u * constants.physical_constants['atomic mass unit-kilogram relationship'][0]
+        
+        # Classical particle radius
+        r_0 = (self.q*constants.e)**2/(4*np.pi*constants.epsilon_0*mass0_in_kg*constants.c**2)  
+        #1.5347e-18 is default for protons, 4.998617e-17 for SPS Pb82 ions
+        
+        de_dt_all = {'x': [], 'y': [], 'xtot': [], 'ytot':[]}        
+        
+        
         for plane in ['x', 'y']:
+            print(f'\ndepsilon_plane{plane}/dt for {self.projectile}:')
             
             # Get average beta function for specified plane
             beta_u = self.beta_avg[plane]
@@ -732,15 +745,19 @@ class BeamGasCollisions(IonLifetimes):
             for Z_t, n_t in zip(self.Z_t, self.fractions):
                 if n_t > 0:
                     d_epsilon_dt = 2 * np.pi * self.gamma * beta_u * n_t * self.beta * constants.c * \
-                                  (2 * self.Z_p * Z_t * r_p / (self.atomic_mass_in_u * self.beta**2 * self.gamma))**2 * \
+                                  (2 * self.Z_p * Z_t * r_0 / (self.A_p * self.beta**2 * self.gamma))**2 * \
                                   np.log(204 * Z_t**(-1/3))
-                    print('de_{}/dt = {:.4e} for {} on {}'.format(plane, d_epsilon_dt, self.projectile, self.target_atoms[i]))
+                    print('de_{}/dt = {:.4e} um rad / s for {} on {}'.format(plane, 1e6*d_epsilon_dt, self.projectile, self.target_atoms[i]))
+                    de_dt_all[plane].append(d_epsilon_dt)
                 else:
                     d_epsilon_dt = 0.0
                                   
                 i += 1
+                
+            # Compute the total emittance growth rate, inversely adding them
+            de_dt_all[f'{plane}tot'] = np.sum([x for x in de_dt_all[plane]])
         
-        return d_epsilon_dt
+        return de_dt_all['xtot'], de_dt_all['ytot']
     
     
     def calculate_full_elastic_emittance_growth(self):
@@ -752,8 +769,26 @@ class BeamGasCollisions(IonLifetimes):
         d_epsilon_dt: tuple
             total emittance growth rates due to elastic Coulomb scattering in X and Y
         """
+        # Dictionary container for growth rates
+        exyn_dict = {'Projectile':[],
+                     'X': {'LEIR': [], 'PS':[], 'SPS':[]},
+                     'Y': {'LEIR': [], 'PS':[], 'SPS':[]}}
+        
+        exyn_dict['Projectile'] = self.all_possible_projectiles
+        
         # Loop over all machines and projectiles
         for machine in ['LEIR', 'PS', 'SPS']:
             for projectile in self.all_possible_projectiles:
                 self.set_projectile_and_machine(projectile=projectile, machine=machine)
+                
+                dex_dt, dey_dt = self.calculate_elastic_emittance_growth_rate()
+                exyn_dict['X'][machine].append(dex_dt)
+                exyn_dict['Y'][machine].append(dey_dt)
+                
+                print('\nTotal emittance growth rates:\nx = {:.3e}, y = {:.3e} um rad /s'.format(1e6*dex_dt, 1e6*dey_dt))
+                print('OR expressed in minutes\nx = {:.3e}, y = {:.3e} um rad / min'.format(1e6*60*dex_dt, 1e6*60*dey_dt))
+                
+        return exyn_dict
+                
+                
                 
