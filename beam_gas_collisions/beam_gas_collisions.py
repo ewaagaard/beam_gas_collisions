@@ -77,10 +77,27 @@ class IonLifetimes:
         self.K = constants.Boltzmann
         self.T = T # temperature in Kelvin 
         self.c_light = constants.c
-        self.projectile = projectile
-
         # Fitting parameters obtained from the semi-empirical study by Weber (2016)
         self.par = [10.88, 0.95, 2.5, 1.1137, -0.1805, 2.64886, 1.35832, 0.80696, 1.00514, 6.13667]
+        self.set_projectile_and_machine(projectile=projectile, machine=machine, p=p, molecular_fraction_array=molecular_fraction_array)
+
+
+    def set_projectile_and_machine(self, projectile='Pb54', machine='PS', p=None, molecular_fraction_array=None):
+        """
+        Update projectile data and parameters
+        
+        Parameters
+        ----------
+        projectile : str
+            define ion and charge state (+). Available ions are 'He1', 'He2', 'O4', 'O8', 'Mg6', 'Mg7', 'Pb54'
+        machine : str
+            define CERN accelerator to load vacuum conditions from: 'LEIR', 'PS' or 'SPS'
+        p : float
+            pressure in mbar. Default is None, not needed if machine is specified
+        molecular_fraction_array : np.ndarray
+            fraction of molecular density in rest gas. Default is None, not needed if machine is specified
+        """
+        self.projectile = projectile
 
         if machine in ['LEIR', 'PS', 'SPS']:      
             # Load machine data: set pressure in Pascal and molecular density
@@ -89,6 +106,8 @@ class IonLifetimes:
             self.p = data.pressure_pascal.values[0]
             self.set_molecular_densities(data.gas_frac)
             self.set_projectile_data(data)
+            self.target_atoms = data.gas_frac.T.keys().values
+            self.all_possible_projectiles = data.projectile_data.T.columns.values
         else:
             print("Machine has to be 'LEIR', 'PS', or 'SPS' for automatic data loading! Set pressures and molecular fractions manually!") 
             if (p is not None) & (molecular_fraction_array is not None):
@@ -97,7 +116,7 @@ class IonLifetimes:
             else:
                 raise ValueError("If machine not 'LEIR', 'PS', or 'SPS', have to provide pressure!")      
 
-        print('at p = {} mbar\n'.format(self.p / 1e2))
+        print('\nProjectile {} for machine {} at p = {} mbar\n'.format(self.projectile, self.machine, self.p / 1e2))
         
     
     def set_projectile_data(self, data):
@@ -117,8 +136,8 @@ class IonLifetimes:
         -----------
         data : DataObject
         """
-        projectile_data = np.array([data.projectile_data['Z'][self.projectile],
-                                    data.projectile_data['A'][self.projectile],
+        projectile_data = np.array([data.projectile_data['Z_p'][self.projectile],
+                                    data.projectile_data['A_p'][self.projectile],
                                     data.projectile_data['{}_q'.format(self.machine)][self.projectile],
                                     data.projectile_data['{}_Kinj'.format(self.machine)][self.projectile],
                                     data.projectile_data['I_p'][self.projectile], 
@@ -126,6 +145,7 @@ class IonLifetimes:
                                     data.projectile_data['{}_beta'.format(self.machine)][self.projectile]])
         
         self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.beta = projectile_data
+        self.gamma = data.projectile_data['{}_gamma'.format(self.machine)][self.projectile] # more exact
         print('\nProjectile initialized: {}\n{}\n'.format(self.projectile, data.projectile_data.loc[self.projectile]))
 
 
@@ -198,7 +218,7 @@ class IonLifetimes:
         self.n_O2 = self.p * x_O2 / (self.K * self.T)
         self.n_Ar = self.p * x_Ar / (self.K * self.T)
 
-        # Contain these into one array
+        # Make array of target atom fractions and atomic numbers
         self.fractions = [self.n_H2,
                           self.n_H2O,
                           self.n_CO,
@@ -207,6 +227,9 @@ class IonLifetimes:
                           self.n_He,
                           self.n_O2,
                           self.n_Ar]
+        # For molecular cross sections of atomic itneractions,
+        # we approximate the target atomic number as the sum
+        self.Z_t = [2., 10., 20., 16., 28., 2, 16., 18]
 
 
     def dubois(self, Z, Z_p, q, e_kin, I_p):
@@ -548,7 +571,8 @@ class IonLifetimes:
 class BeamGasCollisions(IonLifetimes):
     """
     Class object to represent inelastic nuclear collisions and elastic Coulomb scattering,
-    which are other processed possibly contributing to deteriorated beam lifetime
+    which are other processed possibly contributing to deteriorated beam lifetime. Inherits attributes
+    and info from IonLifetimes class
     """
     
     def __init__(self, 
@@ -565,6 +589,9 @@ class BeamGasCollisions(IonLifetimes):
         self.r0 = 1.35e-15 # from Westfall (1979)
         self.b0 = 0.83
         
+        # Average SPS beta functions from Q26 lattice
+        self.beta_avg = {'x': 57.32, 'y': 55.81}
+
         
     def compute_inelastic_nuclear_cross_sections(self, A_p : float, A_t : float):
         """
@@ -618,6 +645,7 @@ class BeamGasCollisions(IonLifetimes):
         A_O2 = 2.0 * A_O
 
         # Compute cross section on targets
+        # TO DO: already defined at start, instead make dictionary
         targets = ['H2', 'He', 'H20', 'H20', 'CO', 'CH4', 'CO2', 'O2', 'Ar']
         self.sigma_H2_N = self.compute_inelastic_nuclear_cross_sections(self.A_p, A_H2)
         self.sigma_He_N = self.compute_inelastic_nuclear_cross_sections(self.A_p, A_He)
@@ -677,38 +705,55 @@ class BeamGasCollisions(IonLifetimes):
         return tau_tot, N_dict
 
 
-    def calculate_elastic_emittance_growth_rate(self, plane='x'):
+    def calculate_elastic_emittance_growth_rate(self):
         """
         Calculates the normalized RMS emittance growth rate due to multiple elastic Coulomb scattering
         
         Parameters
         ----------
-        plane : str
-            Transverse plane for calculation ('x' or 'y'). Default is 'x'.
-            
+
         Returns
         -------
-        d_epsilon_dt : float
-            Emittance growth rate in [m rad/s]
+        d_epsilon_dt : list
+            normalized emittance growth rate in [m rad/s] in x and y for given projectile
         """
         if not hasattr(self, 'beta'):
             raise ValueError("Projectile beta must be set first!")
         
+        
         # Classical proton radius
         r_p = constants.physical_constants['classical proton radius'][0]
-        
-        # Get average beta function for specified plane
-        beta_u = self.data.beta_functions[f'beta_{plane}'][self.machine]
-        
-        # Calculate relativistic factors
-        gamma_r = 1/np.sqrt(1 - self.beta**2)
-        
-        # Calculate for each gas component and sum
-        d_epsilon_dt = 0
-        for Z_t, n_t in zip([1, 1, 6, 6, 6, 2, 8, 18], self.fractions):
-            if n_t > 0:
-                d_epsilon_dt += 2 * np.pi * gamma_r * beta_u * n_t * self.beta * constants.c * \
-                              (2 * self.Z_p * Z_t * r_p / (self.atomic_mass_in_u * self.beta**2 * gamma_r))**2 * \
-                              np.log(204 * Z_t**(-1/3))
+                
+        for plane in ['x', 'y']:
+            
+            # Get average beta function for specified plane
+            beta_u = self.beta_avg[plane]
+            i = 0
+            for Z_t, n_t in zip(self.Z_t, self.fractions):
+                if n_t > 0:
+                    d_epsilon_dt = 2 * np.pi * self.gamma * beta_u * n_t * self.beta * constants.c * \
+                                  (2 * self.Z_p * Z_t * r_p / (self.atomic_mass_in_u * self.beta**2 * self.gamma))**2 * \
+                                  np.log(204 * Z_t**(-1/3))
+                    print('de_{}/dt = {:.4e} for {} on {}'.format(plane, d_epsilon_dt, self.projectile, self.target_atoms[i]))
+                else:
+                    d_epsilon_dt = 0.0
+                                  
+                i += 1
         
         return d_epsilon_dt
+    
+    
+    def calculate_full_elastic_emittance_growth(self):
+        """
+        Compute total emittance growth for all target gases in all machines, inversely adding the lifetimes
+
+        Returns
+        -------
+        d_epsilon_dt: tuple
+            total emittance growth rates due to elastic Coulomb scattering in X and Y
+        """
+        # Loop over all machines and projectiles
+        for machine in ['LEIR', 'PS', 'SPS']:
+            for projectile in self.all_possible_projectiles:
+                self.set_projectile_and_machine(projectile=projectile, machine=machine)
+                
