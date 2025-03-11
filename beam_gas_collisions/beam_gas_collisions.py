@@ -723,15 +723,15 @@ class BeamGasCollisions(IonLifetimes):
         
         
         # Compute mass - if not provided, approximate from numbers of nucleons
-        if hasattr(self, 'atomic_mass_in_u '):
-            mass_in_u = self.atomic_mass_in_u
-        else:
-            mass_in_u = self.A_p
-        mass0_in_kg =  mass_in_u * constants.physical_constants['atomic mass unit-kilogram relationship'][0]
+        #if hasattr(self, 'atomic_mass_in_u '):
+        #    mass_in_u = self.atomic_mass_in_u
+        #else:
+        #    mass_in_u = self.A_p
+        #mass0_in_kg =  mass_in_u * constants.physical_constants['atomic mass unit-kilogram relationship'][0]
         
         # Classical particle radius
-        r_0 = (self.q*constants.e)**2/(4*np.pi*constants.epsilon_0*mass0_in_kg*constants.c**2)  
-        #1.5347e-18 is default for protons, 4.998617e-17 for SPS Pb82 ions
+        r_0 = 1.5347e-18 #(self.q*constants.e)**2/(4*np.pi*constants.epsilon_0*mass0_in_kg*constants.c**2)  
+        #1.5347e-18 is default for protons (unit mass particle), 4.998617e-17 for SPS Pb82 ions
         
         de_dt_all = {'x': [], 'y': [], 'xtot': [], 'ytot':[]}        
         
@@ -747,7 +747,7 @@ class BeamGasCollisions(IonLifetimes):
                     d_epsilon_dt = 2 * np.pi * self.gamma * beta_u * n_t * self.beta * constants.c * \
                                   (2 * self.Z_p * Z_t * r_0 / (self.A_p * self.beta**2 * self.gamma))**2 * \
                                   np.log(204 * Z_t**(-1/3))
-                    print('de_{}/dt = {:.4e} um rad / s for {} on {}'.format(plane, 1e6*d_epsilon_dt, self.projectile, self.target_atoms[i]))
+                    print('de_{}/dt = {:.4e} m rad / s for {} on {}'.format(plane, d_epsilon_dt, self.projectile, self.target_atoms[i]))
                     de_dt_all[plane].append(d_epsilon_dt)
                 else:
                     d_epsilon_dt = 0.0
@@ -785,8 +785,8 @@ class BeamGasCollisions(IonLifetimes):
                 exyn_dict['X'][machine].append(dex_dt)
                 exyn_dict['Y'][machine].append(dey_dt)
                 
-                print('\nTotal emittance growth rates:\nx = {:.3e}, y = {:.3e} um rad /s'.format(1e6*dex_dt, 1e6*dey_dt))
-                print('OR expressed in minutes\nx = {:.3e}, y = {:.3e} um rad / min'.format(1e6*60*dex_dt, 1e6*60*dey_dt))
+                print('\nTotal emittance growth rates:\nx = {:.3e}, y = {:.3e} m rad /s'.format(dex_dt, dey_dt))
+                print('OR expressed in minutes\nx = {:.3e}, y = {:.3e} m rad / min'.format(60*dex_dt, 60*dey_dt))
                 
         return exyn_dict
                 

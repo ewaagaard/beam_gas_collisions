@@ -32,8 +32,8 @@ deY_PS = 1e6*np.array(exyn_dict['Y']['PS'])
 deY_SPS = 1e6*np.array(exyn_dict['Y']['SPS'])
 
 bar_width = 0.21
-mini_fontsize = 8.5
-fig, (ax, ax2) = plt.subplots(2, 1, figsize = (11, 6.8), sharex=True, constrained_layout=True)
+mini_fontsize = 9.5
+fig, (ax, ax2) = plt.subplots(2, 1, figsize = (10, 6.5), sharex=True, constrained_layout=True)
 bar1 = ax.bar(x - 1.15*bar_width, deX_LEIR, bar_width, color='cyan', label='LEIR') #
 bar2 = ax.bar(x, deX_PS, bar_width, color='red', label='PS') #
 bar3 = ax.bar(x + 1.15*bar_width, deX_SPS, bar_width, color='limegreen', label='SPS') #
@@ -50,23 +50,11 @@ for a in [ax, ax2]:
     a.set_yscale('log')
     a.set_xticks(x)
     a.grid(alpha=0.55)
-ax.set_ylabel(r"$d\varepsilon^{n}_{x}/dt$ [urad/s]", fontsize=18)
-ax2.set_ylabel(r"$d\varepsilon^{n}_{x}/dt$ [urad/s]", fontsize=18)
+ax.set_ylabel(r"$d\varepsilon^{n}_{x}/dt$ [mm mrad/s]", fontsize=18)
+ax2.set_ylabel(r"$d\varepsilon^{n}_{x}/dt$ [mm mrad/s]", fontsize=18)
+for a in [ax, ax2]:
+    a.set_ylim(3e-4, 3.)
 ax2.set_xticklabels(latex_labels)
-ax.legend()
+ax.legend(fontsize=12, ncol=2)
 fig.savefig('plots_and_output/LEIR_PS_SPS_emittance_growth_plot.png', dpi=250)
 plt.show()
-
-'''
-# Plot results
-plt.figure(figsize=(10,6))
-for i, ion in enumerate(ions):
-    plt.semilogy(machines, growth_rates[i,:], 'o-', label=ion)
-    
-plt.xlabel('Accelerator')
-plt.ylabel('Emittance growth rate [m rad/s]')
-plt.legend()
-plt.grid(True)
-plt.title('Emittance Growth Rates Across CERN Complex')
-plt.savefig('plots_and_output/emittance_growth_rates.png') 
-'''
