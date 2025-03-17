@@ -589,8 +589,11 @@ class BeamGasCollisions(IonLifetimes):
         self.r0 = 1.35e-15 # from Westfall (1979)
         self.b0 = 0.83
         
-        # Average SPS beta functions from Q26 lattice
-        self.beta_avg = {'x': 57.32, 'y': 55.81}
+        # Average beta functions from fma_ions.sequence makers
+        # SPS beta functions from Q26 lattice
+        self.beta_avg = {'LEIR': {'x': 9.68, 'y': 7.27},
+                         'PS': {'x': 17.17, 'y': 16.97},
+                         'SPS':{'x': 57.32, 'y': 55.81}}
 
         
     def compute_inelastic_nuclear_cross_sections(self, A_p : float, A_t : float):
@@ -737,10 +740,10 @@ class BeamGasCollisions(IonLifetimes):
         
         
         for plane in ['x', 'y']:
-            print(f'\ndepsilon_plane{plane}/dt for {self.projectile}:')
+            print(f'\ndepsilon_plane{plane}/dt for {self.projectile} in {self.machine}:')
             
             # Get average beta function for specified plane
-            beta_u = self.beta_avg[plane]
+            beta_u = self.beta_avg[self.machine][plane]
             i = 0
             for Z_t, n_t in zip(self.Z_t, self.fractions):
                 if n_t > 0:
