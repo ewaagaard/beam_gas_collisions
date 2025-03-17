@@ -55,6 +55,6 @@ ax2.set_ylabel(r"$d\varepsilon^{n}_{x}/dt$ [mm mrad/s]", fontsize=18)
 for a in [ax, ax2]:
     a.set_ylim(3e-4, 0.2)
 ax2.set_xticklabels(latex_labels)
-ax.legend(fontsize=12, ncol=2)
+ax.legend(fontsize=11, ncol=2)
 fig.savefig('plots_and_output/LEIR_PS_SPS_emittance_growth_plot.png', dpi=250)
 plt.show()
