@@ -38,20 +38,25 @@ bar1 = ax.bar(x - 1.15*bar_width, deX_LEIR, bar_width, color='cyan', label='LEIR
 bar2 = ax.bar(x, deX_PS, bar_width, color='red', label='PS') #
 bar3 = ax.bar(x + 1.15*bar_width, deX_SPS, bar_width, color='limegreen', label='SPS') #
 ax.bar_label(bar1, labels=[f'{e:,.1e}'.replace('+0', '') for e in deX_LEIR], padding=3, color='black', fontsize=mini_fontsize) 
-ax.bar_label(bar2, labels=[f'{e:,.1e}'.replace('+0', '') for e in deX_PS], padding=3, color='black', fontsize=mini_fontsize) 
+PS_labels_X=[f'{e:,.1e}'.replace('+0', '') for e in deX_PS]
+PS_labels_X[8] = '' # no space otherwise
+ax.bar_label(bar2, labels=PS_labels_X, padding=3, color='black', fontsize=mini_fontsize) 
 ax.bar_label(bar3, labels=[f'{e:,.1e}'.replace('+0', '') for e in deX_SPS], padding=3, color='black', fontsize=mini_fontsize) 
 bar12 = ax2.bar(x - 1.15*bar_width, deY_LEIR, bar_width, color='cyan', label='LEIR') #
 bar22 = ax2.bar(x, deY_PS, bar_width, color='red', label='PS') #
 bar32 = ax2.bar(x + 1.15*bar_width, deY_SPS, bar_width, color='limegreen', label='SPS') #
 ax2.bar_label(bar12, labels=[f'{e:,.1e}'.replace('+0', '') for e in deY_LEIR], padding=3, color='black', fontsize=mini_fontsize) 
-ax2.bar_label(bar22, labels=[f'{e:,.1e}'.replace('+0', '') for e in deY_PS], padding=3, color='black', fontsize=mini_fontsize) 
+
+PS_labels_Y=[f'{e:,.1e}'.replace('+0', '') for e in deY_PS]
+PS_labels_Y[8] = '' # no space otherwise
+ax2.bar_label(bar22, labels=PS_labels_Y, padding=3, color='black', fontsize=mini_fontsize) 
 ax2.bar_label(bar32, labels=[f'{e:,.1e}'.replace('+0', '') for e in deY_SPS], padding=3, color='black', fontsize=mini_fontsize) 
 for a in [ax, ax2]:
     a.set_yscale('log')
     a.set_xticks(x)
     a.grid(alpha=0.55)
 ax.set_ylabel(r"$d\varepsilon^{n}_{x}/dt$ [mm mrad/s]", fontsize=18)
-ax2.set_ylabel(r"$d\varepsilon^{n}_{x}/dt$ [mm mrad/s]", fontsize=18)
+ax2.set_ylabel(r"$d\varepsilon^{n}_{y}/dt$ [mm mrad/s]", fontsize=18)
 for a in [ax, ax2]:
     a.set_ylim(3e-4, 0.2)
 ax2.set_xticklabels(latex_labels)
