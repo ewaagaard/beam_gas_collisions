@@ -349,7 +349,7 @@ class IonLifetimes:
         sigma_electron_capture electron capture cross section  in (cm^2 if SI units is set to false)
         """
         E_tilde = (e_kin_keV)/(Z**(1.25)*q**0.7)  
-        sigma_tilde = 1.1e-8/E_tilde**4.8*(1 - np.exp(-0.037*E_tilde**2.2))*(1 - np.exp(-2.44*1e-5*E_tilde**2.6))
+        sigma_tilde = 1.1e-8/(E_tilde**4.8)*(1 - np.exp(-0.037*E_tilde**2.2))*(1 - np.exp(-2.44*1e-5*E_tilde**2.6))
         sigma_electron_capture = sigma_tilde*q**0.5/(Z**1.8)
         if SI_units:
             sigma_electron_capture *= 1e-4 # convert to m^2
