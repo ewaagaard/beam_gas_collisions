@@ -567,6 +567,63 @@ class IonLifetimes:
         # Return the non-zero fractions and cross sections
         return non_zero_sigmas_EL, non_zero_sigmas_EC, non_zero_fractions
     
+    
+    def get_molecular_cross_sections_for_gases(self, target_gas_list=['H2', 'CH4', 'CO', 'CO2']):
+        """
+        Calculates EL and EC cross sections for specific molecular target gases.
+
+        Parameters
+        ----------
+        target_gas_list : list, optional
+            List of molecular gas names to calculate cross sections for.
+            Defaults to ['H2', 'CH4', 'CO', 'CO2'].
+
+        Returns
+        -------
+        dict
+            A dictionary where keys are gas names and values are dicts
+            containing 'EL', 'EC', and 'Total' cross sections in m^2.
+            Example: {'H2': {'EL': ..., 'EC': ..., 'Total': ...}, ...}
+        """
+        # Atomic numbers needed
+        Z_H = 1.0
+        Z_C = 6.0
+        Z_O = 8.0
+
+        # Calculate necessary atomic cross sections first
+        e_kin_keV = self.e_kin * 1e3 # for EC calculation
+
+        # --- Electron Loss (EL) ---
+        sigma_H_EL = self.calculate_sigma_electron_loss(Z_H, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
+        sigma_C_EL = self.calculate_sigma_electron_loss(Z_C, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
+        sigma_O_EL = self.calculate_sigma_electron_loss(Z_O, self.Z_p, self.q, self.e_kin, self.I_p, self.n_0, SI_units=True)
+
+        # --- Electron Capture (EC) ---
+        sigma_H_EC = self.calculate_sigma_electron_capture(Z_H, self.q, e_kin_keV, SI_units=True)
+        sigma_C_EC = self.calculate_sigma_electron_capture(Z_C, self.q, e_kin_keV, SI_units=True)
+        sigma_O_EC = self.calculate_sigma_electron_capture(Z_O, self.q, e_kin_keV, SI_units=True)
+
+        # Calculate molecular cross sections using additivity rule
+        molecular_sigmas = {}
+        if 'H2' in target_gas_list:
+            el = 2.0 * sigma_H_EL
+            ec = 2.0 * sigma_H_EC
+            molecular_sigmas['H2'] = {'EL': el, 'EC': ec, 'Total': el + ec}
+        if 'CH4' in target_gas_list:
+            el = sigma_C_EL + 4.0 * sigma_H_EL
+            ec = sigma_C_EC + 4.0 * sigma_H_EC
+            molecular_sigmas['CH4'] = {'EL': el, 'EC': ec, 'Total': el + ec}
+        if 'CO' in target_gas_list:
+            el = sigma_C_EL + sigma_O_EL
+            ec = sigma_C_EC + sigma_O_EC
+            molecular_sigmas['CO'] = {'EL': el, 'EC': ec, 'Total': el + ec}
+        if 'CO2' in target_gas_list:
+            el = sigma_C_EL + 2.0 * sigma_O_EL
+            ec = sigma_C_EC + 2.0 * sigma_O_EC
+            molecular_sigmas['CO2'] = {'EL': el, 'EC': ec, 'Total': el + ec}
+
+        return molecular_sigmas
+    
 
 class BeamGasCollisions(IonLifetimes):
     """
