@@ -154,8 +154,8 @@ for machine in machines:
             valid_indices = np.isfinite(pressures_b)
             if np.any(valid_indices): # Only plot if there are valid points
                  ax0.plot(LIFETIME_RANGE_S[valid_indices], np.array(pressures_b)[valid_indices], lw=2.6, label=convert_to_molecule_state(gas))
-                 ax0.text(0.185, 0.86, '{} in {}\nat {:.1f} MeV/u'.format(format_projectile_latex_simplified(projectile, lifetime_calculator.q), 
-                                                                          machine, lifetime_calculator.e_kin), fontsize=14.5, transform=ax0.transAxes)
+                 ax0.text(0.08, 0.935, '{:.1f} MeV/u: {}'.format(lifetime_calculator.e_kin, format_projectile_latex_simplified(projectile, lifetime_calculator.q)),
+                          fontsize=14.5, transform=ax0.transAxes)
             elif sigma_tot <=0: # Indicate if pressure is always infinite
                  print(f"    Note: Sigma_tot for {gas} is <= 0. Allowed pressure is infinite.")
 
@@ -170,7 +170,7 @@ for machine in machines:
         # Add legend only if plots were actually made
         handles, labels = plt.gca().get_legend_handles_labels()
         if handles:
-             plt.legend(fontsize=13)
+             plt.legend(fontsize=12)
         #plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         filename_b = os.path.join(OUTPUT_DIR, f'{machine}_{projectile}_pressure_vs_lifetime.png')
         plt.savefig(filename_b)
@@ -208,14 +208,14 @@ for machine in machines:
              legend_labels.append('Electron Capture (EC=0)')
 
         ax.set_ylabel('$\\sigma$ [m$^2$]', fontsize=17)
-        ax.text(0.015, 0.885, '{} in {}\nat {:.1f} MeV/u'.format(format_projectile_latex_simplified(projectile, lifetime_calculator.q), machine, 
-                                                                lifetime_calculator.e_kin), fontsize=12.5, transform=ax.transAxes)
+        ax.text(0.015, 0.93, '{:.1f} MeV/u: {}'.format(lifetime_calculator.e_kin, format_projectile_latex_simplified(projectile, lifetime_calculator.q)),
+                fontsize=13.5, transform=ax.transAxes)
         ax.set_xticks(x)
         ax.grid(alpha=0.45)
         # Apply the function to each label in the index
         latex_labels = [convert_to_molecule_state(label) for i, label in enumerate(TARGET_GASES)]
                 
-        ax.set_xticklabels(latex_labels, fontsize=15)
+        ax.set_xticklabels(latex_labels, fontsize=13)
         if legend_handles: # Only show legend if there's something to label
              ax.legend(legend_handles, legend_labels, fontsize=12.5, loc='lower right')
 
