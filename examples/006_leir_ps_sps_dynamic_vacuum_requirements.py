@@ -13,8 +13,8 @@ from beam_gas_collisions import IonLifetimes, DataObject
 # --- Configuration ---
 OUTPUT_DIR = 'plots_and_output_partial_pressure'
 TARGET_LIFETIME_S = 30.0  # Target lifetime for the table (Part a)
-LIFETIME_RANGE_S = np.logspace(0, 2, 20) # 1s to 100s range for plots (Part b)
-TARGET_GASES = ['H2', 'CH4', 'CO', 'CO2']
+LIFETIME_RANGE_S = np.linspace(1, 40, num=40) #np.logspace(0, 2, 20) # 1s to 100s range for plots (Part b)
+TARGET_GASES = ['H2', 'H2O', 'CH4', 'CO', 'CO2']
 TEMPERATURE_K = 298 # Default temperature from IonLifetimes, ensure consistency
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -31,6 +31,37 @@ def calculate_allowed_partial_pressure_mbar(tau_required_s, sigma_tot_gas_m2, be
     # Convert Pascal to mbar (1 Pa = 0.01 mbar)
     p_mbar = p_pascal * 1e-2
     return p_mbar
+
+# --- Formatting Functions ---
+def format_projectile_latex_simplified(projectile_str, charge_val):
+    """Formats projectile string like He1 to He$^{1+}$ for LaTeX."""
+    if pd.isna(charge_val): return projectile_str # Handle missing charge
+    charge_int = int(charge_val)
+    # Use regex to extract only the element letters at the beginning
+    match = re.match(r"([A-Za-z]+)", projectile_str) # Only capture letters
+    if match:
+        element = match.group(1)
+        # Format as Element$^{charge+}$
+        return f"{element}$^{{{charge_int}+}}$"
+    else:
+        # Fallback if no letters found (unlikely for element symbols)
+        return f"{projectile_str}$^{{{charge_int}+}}$" # Keep original name + charge
+
+
+# Function to convert to LaTeX-style charge states
+def convert_to_molecule_state(label):
+    # Split the label into element and charge state using regex
+    match = re.match(r"([A-Za-z]+)(\d+)", label)
+    if label == 'H2O':
+        return 'H$_{{2}}$O'
+    else:
+        if match:
+            element = match.group(1)
+            number = match.group(2)
+            # Return the element and the LaTeX superscript for charge
+            return f"{element}$_{{{number}}}$"
+        else:
+            return label
 
 # --- Main Logic ---
 data = DataObject() # Load base data once
@@ -108,7 +139,7 @@ for machine in machines:
             })
 
         # --- b) Calculate pressure for range of lifetimes & Plot ---
-        plt.figure(figsize=(12, 7))
+        fig0, ax0 = plt.subplots(1, 1, figsize=(4.6, 4.1), constrained_layout=True)
         for gas in TARGET_GASES:
             sigma_tot = molecular_sigmas[gas]['Total']
             pressures_b = [calculate_allowed_partial_pressure_mbar(
@@ -122,22 +153,25 @@ for machine in machines:
             # Filter out potential inf values for plotting if sigma_tot was zero
             valid_indices = np.isfinite(pressures_b)
             if np.any(valid_indices): # Only plot if there are valid points
-                 plt.plot(LIFETIME_RANGE_S[valid_indices], np.array(pressures_b)[valid_indices], label=gas)
+                 ax0.plot(LIFETIME_RANGE_S[valid_indices], np.array(pressures_b)[valid_indices], lw=2.6, label=convert_to_molecule_state(gas))
+                 ax0.text(0.185, 0.86, '{} in {}\nat {:.1f} MeV/u'.format(format_projectile_latex_simplified(projectile, lifetime_calculator.q), 
+                                                                          machine, lifetime_calculator.e_kin), fontsize=14.5, transform=ax0.transAxes)
             elif sigma_tot <=0: # Indicate if pressure is always infinite
                  print(f"    Note: Sigma_tot for {gas} is <= 0. Allowed pressure is infinite.")
 
 
-        plt.xlabel('Required Beam Lifetime (s)')
-        plt.ylabel('Allowed Partial Pressure (mbar)')
-        plt.title(f'Allowed Pressure vs Lifetime for {projectile} in {machine}')
+        ax0.set_xlabel('Beam lifetime [s]', fontsize=17)
+        ax0.set_ylabel('Partial pressure [mbar]', fontsize=17)
+        ax0.set_ylim(1e-12, 1e-6)
+        #plt.title(f'Allowed Pressure vs Lifetime for {projectile} in {machine}')
         #plt.xscale('log')
-        plt.yscale('log')
+        ax0.grid(alpha=0.45)
+        ax0.set_yscale('log')
         # Add legend only if plots were actually made
         handles, labels = plt.gca().get_legend_handles_labels()
         if handles:
-             plt.legend()
-        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-        plt.tight_layout()
+             plt.legend(fontsize=13)
+        #plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         filename_b = os.path.join(OUTPUT_DIR, f'{machine}_{projectile}_pressure_vs_lifetime.png')
         plt.savefig(filename_b)
         plt.close()
@@ -147,9 +181,9 @@ for machine in machines:
         el_values = [molecular_sigmas[gas]['EL'] for gas in TARGET_GASES]
         ec_values = [molecular_sigmas[gas]['EC'] for gas in TARGET_GASES]
         x = np.arange(len(TARGET_GASES)) # the label locations
-        width = 0.35 # the width of the bars
+        width = 0.25 # the width of the bars
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(4.6, 4.1), constrained_layout=True)
         # Check for zero values before plotting log scale
         valid_el = np.array(el_values) > 0
         valid_ec = np.array(ec_values) > 0
@@ -157,10 +191,10 @@ for machine in machines:
         # Plot bars only for non-zero values
         if np.any(valid_el):
              rects1 = ax.bar(x[valid_el] - width/2, np.array(el_values)[valid_el], width, label='Electron Loss (EL)')
-             ax.bar_label(rects1, padding=3, fmt='%.2e')
+             #ax.bar_label(rects1, padding=3, fmt='%.2e', fontsize=8.2)
         if np.any(valid_ec):
              rects2 = ax.bar(x[valid_ec] + width/2, np.array(ec_values)[valid_ec], width, label='Electron Capture (EC)')
-             ax.bar_label(rects2, padding=3, fmt='%.2e')
+             #ax.bar_label(rects2, padding=3, fmt='%.2e', fontsize=8.2)
 
         # Handle cases where EL or EC might be zero entirely for legend
         handles, labels = ax.get_legend_handles_labels()
@@ -173,12 +207,17 @@ for machine in machines:
              legend_handles.append(plt.Rectangle((0,0),1,1, color='tab:orange', alpha=0))
              legend_labels.append('Electron Capture (EC=0)')
 
-        ax.set_ylabel('Cross Section (m$^2$)')
-        ax.set_title(f'EL/EC Cross Sections for {projectile} in {machine}')
+        ax.set_ylabel('$\\sigma$ [m$^2$]', fontsize=17)
+        ax.text(0.015, 0.885, '{} in {}\nat {:.1f} MeV/u'.format(format_projectile_latex_simplified(projectile, lifetime_calculator.q), machine, 
+                                                                lifetime_calculator.e_kin), fontsize=12.5, transform=ax.transAxes)
         ax.set_xticks(x)
-        ax.set_xticklabels(TARGET_GASES)
+        ax.grid(alpha=0.45)
+        # Apply the function to each label in the index
+        latex_labels = [convert_to_molecule_state(label) for i, label in enumerate(TARGET_GASES)]
+                
+        ax.set_xticklabels(latex_labels, fontsize=15)
         if legend_handles: # Only show legend if there's something to label
-             ax.legend(legend_handles, legend_labels)
+             ax.legend(legend_handles, legend_labels, fontsize=12.5, loc='lower right')
 
         # Use log scale only if there are positive values, otherwise linear
         all_vals = np.array(el_values + ec_values)
@@ -192,9 +231,9 @@ for machine in machines:
         else:
             ax.set_yscale('linear') # Fallback to linear if all are zero or negative
             ax.set_ylim(bottom=0) # Ensure linear scale starts at 0 if non-negative
+        ax.set_ylim(1e-29, 1e-19)
 
-        plt.grid(True, axis='y', which='both', linestyle='--', linewidth=0.5)
-        fig.tight_layout()
+        #plt.grid(True, axis='y', which='both', linestyle='--', linewidth=0.5)
         filename_c = os.path.join(OUTPUT_DIR, f'{machine}_{projectile}_cross_sections.png')
         plt.savefig(filename_c)
         plt.close()
@@ -229,20 +268,6 @@ except Exception as e:
     print(f"ERROR creating DataFrame from results: {e}")
     exit()
 
-# --- Formatting Functions ---
-def format_projectile_latex_simplified(projectile_str, charge_val):
-    """Formats projectile string like He1 to He$^{1+}$ for LaTeX."""
-    if pd.isna(charge_val): return projectile_str # Handle missing charge
-    charge_int = int(charge_val)
-    # Use regex to extract only the element letters at the beginning
-    match = re.match(r"([A-Za-z]+)", projectile_str) # Only capture letters
-    if match:
-        element = match.group(1)
-        # Format as Element$^{charge+}$
-        return f"{element}$^{{{charge_int}+}}$"
-    else:
-        # Fallback if no letters found (unlikely for element symbols)
-        return f"{projectile_str}$^{{{charge_int}+}}$" # Keep original name + charge
 
 def format_pressure_scientific(p_val):
     """Formats pressure value into scientific notation (e.g., 9.7e-13)."""
