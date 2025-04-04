@@ -351,10 +351,17 @@ class IonLifetimes:
         # Schlachter (1983) states that formula is valid for q \geq 3, otherwise add 0.4
         if q < 3.0:
             q += 0.4
+            print('q < 3: charge q set to q+0.4 = {}'.format(q))
         
         E_tilde = (e_kin_keV)/(Z**(1.25)*q**0.7)  
-        sigma_tilde = 1.1e-8/(E_tilde**4.8)*(1 - np.exp(-0.037*E_tilde**2.2))*(1 - np.exp(-2.44*1e-5*E_tilde**2.6))
-        sigma_electron_capture = sigma_tilde*q**0.5/(Z**1.8)
+        
+        # Only use for reduced energies below 1000, otherwise use asympototic limit
+        if E_tilde < 1000:
+            sigma_tilde = 1.1e-8/(E_tilde**4.8)*(1 - np.exp(-0.037*E_tilde**2.2))*(1 - np.exp(-2.44*1e-5*E_tilde**2.6))
+            sigma_electron_capture = sigma_tilde*q**0.5/(Z**1.8)
+        else:
+            sigma_electron_capture = 1.1e-8 * q**(3.9) * Z**(4.2) / e_kin_keV**4.8
+        
         if SI_units:
             sigma_electron_capture *= 1e-4 # convert to m^2
         return sigma_electron_capture
@@ -572,7 +579,7 @@ class IonLifetimes:
         return non_zero_sigmas_EL, non_zero_sigmas_EC, non_zero_fractions
     
     
-    def get_molecular_cross_sections_for_gases(self, target_gas_list=['H2', 'CH4', 'CO', 'CO2']):
+    def get_molecular_cross_sections_for_gases(self, target_gas_list=['H2', 'H2O', 'CH4', 'CO', 'CO2']):
         """
         Calculates EL and EC cross sections for specific molecular target gases.
 
@@ -580,7 +587,7 @@ class IonLifetimes:
         ----------
         target_gas_list : list, optional
             List of molecular gas names to calculate cross sections for.
-            Defaults to ['H2', 'CH4', 'CO', 'CO2'].
+            Defaults to ['H2', 'H2O', 'CH4', 'CO', 'CO2'].
 
         Returns
         -------
@@ -613,6 +620,10 @@ class IonLifetimes:
             el = 2.0 * sigma_H_EL
             ec = 2.0 * sigma_H_EC
             molecular_sigmas['H2'] = {'EL': el, 'EC': ec, 'Total': el + ec}
+        if 'H2O' in target_gas_list:
+            el = 2.0 * sigma_H_EL + sigma_O_EL
+            ec = 2.0 * sigma_H_EC + sigma_O_EC
+            molecular_sigmas['H2O'] = {'EL': el, 'EC': ec, 'Total': el + ec}
         if 'CH4' in target_gas_list:
             el = sigma_C_EL + 4.0 * sigma_H_EL
             ec = sigma_C_EC + 4.0 * sigma_H_EC
