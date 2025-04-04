@@ -56,7 +56,7 @@ class IonLifetimes:
     def __init__(self, 
                  projectile='Pb54',
                  machine='PS',
-                 T=298,
+                 T=293,
                  p=None,
                  molecular_fraction_array=None):
         """
@@ -67,7 +67,7 @@ class IonLifetimes:
         machine : str
             define CERN accelerator to load vacuum conditions from: 'LEIR', 'PS' or 'SPS'
         T : float
-            temperature in kelvin. The default is 298.
+            temperature in kelvin. The default is 293 [20 centrigrades]
         p : float
             pressure in mbar. Default is None, not needed if machine is specified
         molecular_fraction_array : np.ndarray
