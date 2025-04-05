@@ -7,7 +7,7 @@ __pycache__/
 *.parquet
 *.png
 *.seq
-#*.csv # needed for input data
+*.csv # needed for input data
 
 # C extensions
 *.so
