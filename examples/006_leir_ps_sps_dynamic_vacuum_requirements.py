@@ -63,12 +63,25 @@ def convert_to_molecule_state(label):
         else:
             return label
 
+def format_cross_section_scientific(cs_val):
+    """Formats cross section value into scientific notation (e.g., 1.23e-20)."""
+    if pd.isna(cs_val) or not np.isfinite(cs_val) or cs_val < 0:
+        return "-"
+    return f"{cs_val:.1e}"
+
+def format_energy(e_val):
+    """Formats energy value (e.g., 4.2)."""
+    if pd.isna(e_val) or not np.isfinite(e_val):
+        return "-"
+    return f"{e_val:.1f}" # Format to one decimal place
+
 # --- Main Logic ---
 data = DataObject() # Load base data once
 all_projectiles = data.projectile_data.index.values
 machines = ['LEIR', 'PS', 'SPS']
 
 results_table_a = [] # To store data for the CSV file (Part a)
+results_cross_sections = []
 
 # Use a single IonLifetimes object and update it
 # Initialize with arbitrary valid values, will be overwritten in loop
@@ -102,6 +115,26 @@ for machine in machines:
         # --- Calculate EL/EC Cross Sections using the new class method ---
         try:
             molecular_sigmas = lifetime_calculator.get_molecular_cross_sections_for_gases(TARGET_GASES)
+
+            # --- Store Cross Sections ---
+            for gas in TARGET_GASES:
+                # Ensure charge is correctly retrieved/available
+                current_charge = int(lifetime_calculator.q) if hasattr(lifetime_calculator, 'q') else None
+                current_energy = lifetime_calculator.e_kin if hasattr(lifetime_calculator, 'e_kin') else None
+                if current_charge is None or current_energy is None:
+                    print(f"    WARNING: Could not retrieve charge for {projectile} in {machine}. Skipping CS data storage.")
+                    continue # Skip if charge is missing
+
+                results_cross_sections.append({
+                    'Machine': machine,
+                    'Projectile': projectile,
+                    'Charge': current_charge,
+                    'Energy': current_energy,
+                    'Target Gas': gas,
+                    'EL Cross Section': molecular_sigmas[gas]['EL'], # m^2
+                    'EC Cross Section': molecular_sigmas[gas]['EC']  # m^2
+                })
+
             # Verify that all target gases were returned
             if not all(gas in molecular_sigmas for gas in TARGET_GASES):
                  missing_gases = [gas for gas in TARGET_GASES if gas not in molecular_sigmas]
@@ -154,14 +187,14 @@ for machine in machines:
             valid_indices = np.isfinite(pressures_b)
             if np.any(valid_indices): # Only plot if there are valid points
                  ax0.plot(LIFETIME_RANGE_S[valid_indices], np.array(pressures_b)[valid_indices], lw=2.6, label=convert_to_molecule_state(gas))
-                 ax0.text(0.08, 0.935, '{:.1f} MeV/u: {}'.format(lifetime_calculator.e_kin, format_projectile_latex_simplified(projectile, lifetime_calculator.q)),
-                          fontsize=14.5, transform=ax0.transAxes)
+                 ax0.text(0.05, 0.925, '{:.1f} MeV/u: {}'.format(lifetime_calculator.e_kin, format_projectile_latex_simplified(projectile, lifetime_calculator.q)),
+                          fontsize=16.2, transform=ax0.transAxes)
             elif sigma_tot <=0: # Indicate if pressure is always infinite
                  print(f"    Note: Sigma_tot for {gas} is <= 0. Allowed pressure is infinite.")
 
 
         ax0.set_xlabel('Beam lifetime [s]', fontsize=17)
-        ax0.set_ylabel('Partial pressure [mbar]', fontsize=17)
+        ax0.set_ylabel('Target pressure [mbar]', fontsize=17)
         ax0.set_ylim(1e-12, 1e-6)
         #plt.title(f'Allowed Pressure vs Lifetime for {projectile} in {machine}')
         #plt.xscale('log')
@@ -170,7 +203,7 @@ for machine in machines:
         # Add legend only if plots were actually made
         handles, labels = plt.gca().get_legend_handles_labels()
         if handles:
-             plt.legend(fontsize=12)
+             plt.legend(fontsize=12, loc='upper right')
         #plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         filename_b = os.path.join(OUTPUT_DIR, f'{machine}_{projectile}_pressure_vs_lifetime.png')
         plt.savefig(filename_b)
@@ -190,10 +223,10 @@ for machine in machines:
 
         # Plot bars only for non-zero values
         if np.any(valid_el):
-             rects1 = ax.bar(x[valid_el] - width/2, np.array(el_values)[valid_el], width, label='Electron Loss (EL)')
+             rects1 = ax.bar(x[valid_el] - width/2, np.array(el_values)[valid_el], width, label='EL')
              #ax.bar_label(rects1, padding=3, fmt='%.2e', fontsize=8.2)
         if np.any(valid_ec):
-             rects2 = ax.bar(x[valid_ec] + width/2, np.array(ec_values)[valid_ec], width, label='Electron Capture (EC)')
+             rects2 = ax.bar(x[valid_ec] + width/2, np.array(ec_values)[valid_ec], width, label='EC')
              #ax.bar_label(rects2, padding=3, fmt='%.2e', fontsize=8.2)
 
         # Handle cases where EL or EC might be zero entirely for legend
@@ -208,8 +241,8 @@ for machine in machines:
              legend_labels.append('Electron Capture (EC=0)')
 
         ax.set_ylabel('$\\sigma$ [m$^2$]', fontsize=17)
-        ax.text(0.015, 0.93, '{:.1f} MeV/u: {}'.format(lifetime_calculator.e_kin, format_projectile_latex_simplified(projectile, lifetime_calculator.q)),
-                fontsize=13.5, transform=ax.transAxes)
+        ax.text(0.013, 0.94, '{:.1f} MeV/u: {}'.format(lifetime_calculator.e_kin, format_projectile_latex_simplified(projectile, lifetime_calculator.q)),
+                fontsize=14.5, transform=ax.transAxes)
         ax.set_xticks(x)
         ax.grid(alpha=0.45)
         # Apply the function to each label in the index
@@ -276,86 +309,281 @@ def format_pressure_scientific(p_val):
     # Format to one decimal place in scientific notation
     return f"{p_val:.1e}"
 
-# --- Create one CSV per machine ---
-for machine in machines:
-    print(f"  Processing table for: {machine}")
-    df_machine = df_results[df_results['Machine'] == machine].copy()
 
-    if df_machine.empty:
-        print(f"    No results found for machine {machine}, skipping CSV generation.")
-        continue
+# ... (Check results_table_a, create df_results - same as before) ...
+if 'df_results' in locals() and df_results is not None: # Check if df_results was created
 
-    # Check for charge column again before proceeding
-    if 'Charge' not in df_machine.columns:
-         print(f"    ERROR: Charge column missing for machine {machine} data. Cannot format projectile names.")
-         continue
+    # --- Define Formatting Functions (if not already defined globally) ---
+    # format_projectile_latex_simplified(...)
+    # format_pressure_scientific(...)
 
-    # Apply *simplified* projectile formatting (create a new column)
+    # --- Create one CSV per machine ---
+    for machine in machines:
+        print(f"  Processing Pressure table for: {machine}")
+        df_machine = df_results[df_results['Machine'] == machine].copy()
+
+        if df_machine.empty:
+            print(f"    No results found for machine {machine}, skipping CSV generation.")
+            continue
+
+        # Apply projectile formatting
+        # ... (Try/except block as before) ...
+        try:
+            df_machine['Projectile_LaTeX'] = df_machine.apply(
+                lambda row: format_projectile_latex_simplified(row['Projectile'], row['Charge']), axis=1
+            )
+        except NameError: # Ensure formatter function exists
+             print("    ERROR: 'format_projectile_latex_simplified' function not defined.")
+             break
+        except Exception as e:
+             print(f"    ERROR formatting projectile names for Pressure table ({machine}): {e}")
+             continue
+
+        # Pivot the table
+        pressure_col_name = f'Allowed Pressure (mbar) for {TARGET_LIFETIME_S}s'
+        try:
+            df_pivot = df_machine.pivot_table(
+                index='Projectile_LaTeX', columns='Target Gas', values=pressure_col_name, aggfunc='first'
+            )
+        except Exception as e:
+             print(f"    ERROR pivoting data for Pressure table ({machine}): {e}")
+             continue
+
+        # Reorder columns
+        # ... (Try/except block for reindex as before) ...
+        try:
+            df_pivot = df_pivot.reindex(columns=TARGET_GASES, fill_value=np.nan)
+        except Exception as e:
+            print(f"    ERROR reindexing columns for Pressure table ({machine}): {e}")
+            continue
+
+        # Format the pressure values
+        df_formatted = df_pivot.applymap(format_pressure_scientific)
+
+        # --- Sort by Charge State ---
+        df_formatted_sorted = df_formatted # Default to unsorted
+        if 'Charge' not in df_machine.columns:
+            print(f"   WARNING: Charge column missing for machine {machine}. Cannot sort table by charge.")
+        else:
+            try:
+                # Create map from LaTeX name back to original Charge
+                # Use groupby().first() to handle potential duplicate Projectile_LaTeX index entries safely
+                charge_map = df_machine.groupby('Projectile_LaTeX')['Charge'].first()
+                # Get the index sorted by the charge values from the map
+                sorted_index = charge_map.sort_values().index
+                # Reindex the formatted table according to the sorted index
+                # Ensure all indices in df_formatted are present in sorted_index
+                df_formatted_sorted = df_formatted.reindex(sorted_index.intersection(df_formatted.index))
+            except Exception as e:
+                print(f"    WARNING: Failed to sort pressure table by charge for {machine}: {e}")
+        # --- End Sort ---
+
+        # Prepare CSV content
+        csv_filename = os.path.join(OUTPUT_DIR, f'{machine}_partial_pressure_table_{TARGET_LIFETIME_S}s.csv')
+        header_line1 = f"\"{machine} projectile\""
+
+        try:
+             with open(csv_filename, 'w', newline='', encoding='utf-8') as f:
+                f.write(header_line1 + '\n')
+                # Use df_formatted_sorted here for column headers if needed (though format is same)
+                gas_headers_str = ",".join([f"\"{gas}\"" for gas in df_formatted_sorted.columns])
+                projectile_header = f"\"Projectile\",{gas_headers_str}"
+                f.write(projectile_header + '\n')
+                # Write the SORTED DataFrame to CSV
+                df_formatted_sorted.to_csv(f, index=True, header=False)
+
+             print(f"    Saved sorted Pressure table: {csv_filename}")
+        except Exception as e:
+             print(f"    ERROR writing sorted Pressure CSV file {csv_filename}: {e}")
+
+# else: # Handle case where df_results was not created
+#    print("Skipping Pressure table generation as initial DataFrame failed.")
+
+print("\nPressure CSV table generation complete.")
+
+# --- Generate Cross Section LaTeX-style CSV Tables ---
+print("\nGenerating Cross Section LaTeX-style CSV tables...")
+
+df_cs_results = None # Initialize DataFrame variable to None
+
+# First, check if the source list exists and has data
+if 'results_cross_sections' not in locals() or not results_cross_sections:
+    print("WARNING: No cross section results found in 'results_cross_sections' list. Skipping CS table generation.")
+else:
+    # Attempt to create the DataFrame and validate columns
     try:
-        df_machine['Projectile_LaTeX'] = df_machine.apply(
-            lambda row: format_projectile_latex_simplified(row['Projectile'], row['Charge']), axis=1
-        )
-    except Exception as e:
-         print(f"    ERROR formatting projectile names for {machine}: {e}")
-         continue # Skip this machine if formatting fails
+        df_cs_results = pd.DataFrame(results_cross_sections)
+        # Ensure required columns exist after DataFrame creation
+        required_cs_cols = ['Machine', 'Projectile', 'Charge', 'Energy', 'Target Gas', 'EL Cross Section', 'EC Cross Section']
+        if not all(col in df_cs_results.columns for col in required_cs_cols):
+             missing_cols = [col for col in required_cs_cols if col not in df_cs_results.columns]
+             print(f"ERROR: Required columns missing in cross section results DataFrame: {missing_cols}. Skipping CS table generation.")
+             df_cs_results = None # Invalidate DataFrame if columns missing
+        elif df_cs_results.empty:
+             print("WARNING: Cross section results DataFrame is empty. Skipping CS table generation.")
+             df_cs_results = None # Invalidate DataFrame if empty
 
-    # Pivot the table
-    pressure_col_name = f'Allowed Pressure (mbar) for {TARGET_LIFETIME_S}s'
+    except Exception as e:
+        print(f"ERROR creating DataFrame from cross section results: {e}. Skipping CS table generation.")
+        df_cs_results = None # Invalidate DataFrame on creation error
+
+
+# Proceed only if DataFrame was successfully created, validated, and is not empty
+if df_cs_results is not None:
+
+    # --- Define Formatting Functions (ensure these are defined) ---
     try:
-        # Group by the formatted projectile name and get the first entry for each gas
-        # This handles potential duplicate formatted names if inputs were like 'He1', 'He2' mapping to He^1+, He^2+
+        # Example check, replace with actual function names if needed
+        assert callable(format_projectile_latex_simplified)
+        assert callable(format_cross_section_scientific)
+        assert callable(format_energy)
+    except (NameError, AssertionError):
+        print("ERROR: Formatting functions (e.g., format_projectile_latex_simplified) are not defined. Skipping CS table generation.")
+        df_cs_results = None # Prevent proceeding
 
-        # Get the ordered unique values from the 'Projectile_LaTeX' column
-        ordered_projectile_latex = df_machine['Projectile_LaTeX'].unique().tolist()
-        
-        df_pivot = df_machine.pivot_table(
-            index= 'Projectile_LaTeX', # Use the formatted name as index
-            columns='Target Gas',
-            values=pressure_col_name,
-            aggfunc='first' # Use 'first' aggfunc
-        )
-        
-        df_pivot = df_pivot.reindex(ordered_projectile_latex)
-    except Exception as e:
-         print(f"    ERROR pivoting data for machine {machine}: {e}")
-         continue # Skip this machine if pivoting fails
+# Re-check df_cs_results before entering the loop
+if df_cs_results is not None:
+    # --- Create one EL and one EC CSV per machine ---
+    for machine in machines:
+        print(f"  Processing CS tables for: {machine}")
+        # Filter data for the current machine
+        df_cs_machine = df_cs_results[df_cs_results['Machine'] == machine].copy()
 
-    # Ensure columns are in the desired order H2, CH4, CO, CO2
-    try:
-        # Use reindex and fill missing values with NaN which format_pressure handles
-        df_pivot = df_pivot.reindex(columns=TARGET_GASES, fill_value=np.nan)
-    except Exception as e:
-        print(f"    ERROR reindexing columns for {machine}: {e}")
-        continue
+        if df_cs_machine.empty:
+            # This check might be redundant given the earlier checks, but safe
+            print(f"    No cross section results found for machine {machine}, skipping CSV generation.")
+            continue
 
-    # Format the pressure values in the pivoted table
-    df_formatted = df_pivot.applymap(format_pressure_scientific)
+        # Apply projectile formatting
+        try:
+            df_cs_machine['Projectile_LaTeX'] = df_cs_machine.apply(
+                lambda row: format_projectile_latex_simplified(row['Projectile'], row['Charge']), axis=1
+            )
+        except Exception as e:
+             print(f"    ERROR formatting projectile names for CS table ({machine}): {e}")
+             continue # Skip this machine
 
-    # --- Prepare CSV content ---
-    csv_filename = os.path.join(OUTPUT_DIR, f'{machine}_partial_pressure_table_{TARGET_LIFETIME_S}s.csv')
+        # --- Create Charge map for sorting ---
+        charge_map_cs = None
+        sorted_index_cs = None
+        # No need to check 'Charge' column existence here again, checked at df_cs_results creation
+        try:
+            charge_map_cs = df_cs_machine.groupby('Projectile_LaTeX')['Charge'].first()
+            sorted_index_cs = charge_map_cs.sort_values().index # Get the sorted index
+        except Exception as e:
+            print(f"    WARNING: Failed to create charge map/sorted index for CS tables ({machine}): {e}")
+            # Sorting will be skipped if sorted_index_cs remains None
 
-    # UPDATED Header line 1: Simplified format
-    header_line1 = f"\"{machine} projectile\""
+        # --- Create Energy map ---
+        energy_map = None
+        # No need to check 'Energy' column existence here again
+        try:
+             energy_map = df_cs_machine.groupby('Projectile_LaTeX')['Energy'].first()
+        except Exception as e:
+             print(f"    WARNING: Failed to create energy map for {machine}: {e}")
+             # Energy column addition will be skipped if energy_map remains None
 
-    try:
-        with open(csv_filename, 'w', newline='', encoding='utf-8') as f:
-            # Write the custom header line 1
-            f.write(header_line1 + '\n')
+        # --- Generate EL Table ---
+        try:
+            df_el_pivot = df_cs_machine.pivot_table(
+                index='Projectile_LaTeX', columns='Target Gas', values='EL Cross Section', aggfunc='first'
+            )
+            df_el_pivot = df_el_pivot.reindex(columns=TARGET_GASES, fill_value=np.nan)
+            df_el_formatted = df_el_pivot.applymap(format_cross_section_scientific)
 
-            # Write the second header line - "Projectile" and Gas names
-            # Ensure gas names are quoted if they contain commas, spaces etc. (unlikely here)
-            gas_headers_str = ",".join([f"\"{gas}\"" for gas in df_formatted.columns])
-            projectile_header = f"\"Projectile\",{gas_headers_str}"
-            f.write(projectile_header + '\n')
-
-            # Write the DataFrame to CSV
-            # index=True writes the 'Projectile_LaTeX' index column
-            # header=False prevents pandas from writing its own header row again
-            df_formatted.to_csv(f, index=True, header=False)
-
-        print(f"    Saved table: {csv_filename}")
-    except Exception as e:
-        print(f"    ERROR writing CSV file {csv_filename}: {e}")
+            # Add Energy column if map exists
+            if energy_map is not None:
+                 try:
+                    energy_col_data = df_el_formatted.index.map(energy_map)
+                    formatted_energy_col = energy_col_data.map(format_energy)
+                    df_el_formatted.insert(0, 'Energy (MeV/u)', formatted_energy_col)
+                 except Exception as e:
+                    print(f"    WARNING: Failed to add energy column to EL table for {machine}: {e}")
+            else:
+                 print(f"    Skipping energy column addition for EL table ({machine}) due to map error.")
 
 
-print("\nCSV table generation complete.")
+            # Sort EL Table if sorted index exists
+            df_el_formatted_sorted = df_el_formatted # Default to unsorted
+            if sorted_index_cs is not None:
+                 try:
+                    df_el_formatted_sorted = df_el_formatted.reindex(sorted_index_cs.intersection(df_el_formatted.index))
+                 except Exception as e:
+                    print(f"    WARNING: Failed to sort EL table by charge for {machine}: {e}")
+            else:
+                 print(f"    Skipping charge sort for EL table ({machine}).")
+
+
+            # Write EL CSV
+            csv_el_filename = os.path.join(OUTPUT_DIR, f'{machine}_EL_cross_section_table.csv')
+            header_line1_el = f"\"{machine} EL cross section (m^2)\""
+            with open(csv_el_filename, 'w', newline='', encoding='utf-8') as f:
+                f.write(header_line1_el + '\n')
+                # Adjust header dynamically based on whether Energy column was added
+                gas_headers_str = ",".join([f"\"{gas}\"" for gas in df_el_pivot.columns])
+                energy_header = ""
+                if 'Energy (MeV/u)' in df_el_formatted_sorted.columns:
+                     energy_header = ",\"Energy (MeV/u)\""
+                projectile_header = f"\"Projectile\"{energy_header},{gas_headers_str}"
+                f.write(projectile_header + '\n')
+                df_el_formatted_sorted.to_csv(f, index=True, header=False)
+            print(f"    Saved EL table: {csv_el_filename}")
+
+        except Exception as e:
+            print(f"    ERROR generating EL table for {machine}: {e}")
+
+
+        # --- Generate EC Table ---
+        try:
+            df_ec_pivot = df_cs_machine.pivot_table(
+                index='Projectile_LaTeX', columns='Target Gas', values='EC Cross Section', aggfunc='first'
+            )
+            df_ec_pivot = df_ec_pivot.reindex(columns=TARGET_GASES, fill_value=np.nan)
+            df_ec_formatted = df_ec_pivot.applymap(format_cross_section_scientific)
+
+            # Add Energy column if map exists
+            if energy_map is not None:
+                 try:
+                    energy_col_data = df_ec_formatted.index.map(energy_map)
+                    formatted_energy_col = energy_col_data.map(format_energy)
+                    df_ec_formatted.insert(0, 'Energy (MeV/u)', formatted_energy_col)
+                 except Exception as e:
+                     print(f"    WARNING: Failed to add energy column to EC table for {machine}: {e}")
+
+            else:
+                 print(f"    Skipping energy column addition for EC table ({machine}) due to map error.")
+
+
+            # Sort EC Table if sorted index exists
+            df_ec_formatted_sorted = df_ec_formatted # Default to unsorted
+            if sorted_index_cs is not None:
+                 try:
+                    df_ec_formatted_sorted = df_ec_formatted.reindex(sorted_index_cs.intersection(df_ec_formatted.index))
+                 except Exception as e:
+                    print(f"    WARNING: Failed to sort EC table by charge for {machine}: {e}")
+            else:
+                 print(f"    Skipping charge sort for EC table ({machine}).")
+
+
+            # Write EC CSV
+            csv_ec_filename = os.path.join(OUTPUT_DIR, f'{machine}_EC_cross_section_table.csv')
+            header_line1_ec = f"\"{machine} EC cross section (m^2)\""
+            with open(csv_ec_filename, 'w', newline='', encoding='utf-8') as f:
+                f.write(header_line1_ec + '\n')
+                # Adjust header dynamically
+                gas_headers_str = ",".join([f"\"{gas}\"" for gas in df_ec_pivot.columns])
+                energy_header = ""
+                if 'Energy (MeV/u)' in df_ec_formatted_sorted.columns:
+                     energy_header = ",\"Energy (MeV/u)\""
+                projectile_header = f"\"Projectile\"{energy_header},{gas_headers_str}"
+                f.write(projectile_header + '\n')
+                df_ec_formatted_sorted.to_csv(f, index=True, header=False)
+            print(f"    Saved EC table: {csv_ec_filename}")
+
+        except Exception as e:
+            print(f"    ERROR generating EC table for {machine}: {e}")
+
+# else: # Handle case where df_cs_results is None or initial checks failed
+#    print("Skipping Cross Section table generation due to initialization issues.")
+
+print("\nCross Section CSV table generation complete.")
