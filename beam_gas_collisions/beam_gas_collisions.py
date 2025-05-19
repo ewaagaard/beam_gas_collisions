@@ -119,7 +119,7 @@ class IonLifetimes:
         print('\nProjectile {} at p = {} mbar\n'.format(self.projectile, self.p / 1e2))
         
     
-    def set_projectile_data(self, data):
+    def set_projectile_data(self, data, at_injection=True):
         """
         Sets the projectile data:
             Z_p : atomic number Z of projectile
@@ -135,14 +135,27 @@ class IonLifetimes:
         Parameters:
         -----------
         data : DataObject
+        at_injection : bool
+            whether to set at injection or at extraction energy (for LEIR or PS). If True,
+            energy is set to injection, if False, energy is set to extraction (i.e. injection at next machine)
         """
+        # Define which machine to use for correct energy
+        if not at_injection and self.machine == 'LEIR':
+            machine_for_energy = 'PS'
+            print('\nChecking LEIR at extraction (PS energy)\n')
+        elif not at_injection and self.machine == 'PS':
+            machine_for_energy = 'SPS'
+            print('\nChecking PS at extraction (SPS energy)\n')
+        else:
+            machine_for_energy = self.machine
+
         projectile_data = np.array([data.projectile_data['Z_p'][self.projectile],
                                     data.projectile_data['A_p'][self.projectile],
                                     data.projectile_data['{}_q'.format(self.machine)][self.projectile],
-                                    data.projectile_data['{}_Kinj'.format(self.machine)][self.projectile],
+                                    data.projectile_data['{}_Kinj'.format(machine_for_energy)][self.projectile],
                                     data.projectile_data['I_p'][self.projectile], 
                                     data.projectile_data['n_0'][self.projectile], 
-                                    data.projectile_data['{}_gamma'.format(self.machine)][self.projectile]])
+                                    data.projectile_data['{}_gamma'.format(machine_for_energy)][self.projectile]])
         
         self.Z_p, self.A_p, self.q, self.e_kin, self.I_p, self.n_0, self.gamma = projectile_data
         self.beta = np.sqrt(1 - 1/self.gamma**2)
