@@ -14,8 +14,8 @@ os.makedirs('plots_and_output', exist_ok=True)
 projectile = 'Pb54'
 
 # Instantiate classes for LEIR, PS, SPS
-LEIR_rest_gas = IonLifetimes(projectile=projectile, machine='LEIR')
-PS_rest_gas = IonLifetimes(projectile=projectile, machine='PS')
+#LEIR_rest_gas = IonLifetimes(projectile=projectile, machine='LEIR')
+#PS_rest_gas = IonLifetimes(projectile=projectile, machine='PS')
 
 
 # Initiate empty arrays for all ion species
@@ -35,8 +35,11 @@ for i, projectile in enumerate(data.projectile_data.T.columns):
     
     ##### LEIR #####
     # Injection energy
-    LEIR_rest_gas.projectile = projectile
-    LEIR_rest_gas.set_projectile_data(data)  
+    #LEIR_rest_gas.projectile = projectile
+    #LEIR_rest_gas.set_projectile_data(data)  
+    
+    LEIR_rest_gas = IonLifetimes(projectile=projectile, machine='LEIR')
+    
     tau_dict['tau_LEIR_inj'].append(LEIR_rest_gas.calculate_total_lifetime_full_gas())
     # Extraction energy
     LEIR_rest_gas.set_projectile_data(data, at_injection=False)  
@@ -44,6 +47,7 @@ for i, projectile in enumerate(data.projectile_data.T.columns):
 
     ##### PS #####
     # Injection energy
+    PS_rest_gas = IonLifetimes(projectile=projectile, machine='PS')
     PS_rest_gas.projectile = projectile
     PS_rest_gas.set_projectile_data(data)  
     tau_dict['tau_PS_inj'].append(PS_rest_gas.calculate_total_lifetime_full_gas())
