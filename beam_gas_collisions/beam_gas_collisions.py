@@ -189,6 +189,7 @@ class IonLifetimes:
             self.E_tot = self.mass_in_eV + 1e6*self.e_kin * self.mass_in_u_stripped# total kinetic energy in eV per particle at injection
             self.gamma = self.E_tot/self.mass_in_eV
             self.beta = np.sqrt(1 - 1/self.gamma**2)
+        print('\nNew projectile initialized:\n{}\n'.format(projectile_data))
 
 
     def set_molecular_densities(self, molecular_fraction_array):
