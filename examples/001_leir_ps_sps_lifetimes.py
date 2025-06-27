@@ -135,8 +135,26 @@ ax.set_xticklabels(latex_labels)
 ax.set_ylabel(r"Beam lifetime $\tau$ [s]")
 ax.legend()
 plt.grid(alpha=0.55)
-fig.savefig('plots_and_output/LEIR_PS_SPS_full_lifetime_plot_compact.png', dpi=250)
+fig.savefig('plots_and_output/LEIR_PS_SPS_full_lifetime_plot.png', dpi=250)
     
+
+## Plot a light version of this plot
+ind0 = [0, 2, 4, 6, 7, 8, 9, 10, 11, 12]
+x0 = np.arange(len(x[ind0]))
+fig0, ax0 = plt.subplots(1, 1, figsize = (9, 5.3), constrained_layout=True)
+bar10 = ax0.bar(x0 - 1.15*bar_width, tau_values_LEIR[ind0], bar_width, color='cyan', label='LEIR') #
+bar20 = ax0.bar(x0, tau_values_PS[ind0], bar_width, color='red', label='PS') #
+bar30 = ax0.bar(x0 + 1.15*bar_width, tau_values_SPS[ind0], bar_width, color='limegreen', label='SPS') #
+ax0.bar_label(bar10, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_LEIR[ind0]], padding=3, color='black', fontsize=10) 
+ax0.bar_label(bar20, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_PS[ind0]], padding=3, color='black', fontsize=10) 
+ax0.bar_label(bar30, labels=[f'{e:,.1e}'.replace('+0', '') for e in tau_values_SPS[ind0]], padding=3, color='black', fontsize=10) 
+ax0.set_yscale('log')
+ax0.set_xticks(x0)
+ax0.set_xticklabels(np.array(latex_labels)[ind0])
+ax0.set_ylabel(r"Beam lifetime $\tau$ [s]")
+ax0.legend()
+plt.grid(alpha=0.45)
+fig0.savefig('plots_and_output/LEIR_PS_SPS_full_lifetime_plot_compact.png', dpi=350)
     
 # Plot the cross sections of each projectile on H2 (first column)
 bar_width = 0.25

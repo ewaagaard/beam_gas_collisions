@@ -15,7 +15,7 @@ OUTPUT_DIR = 'plots_and_output_partial_pressure'
 TARGET_LIFETIME_S = 30.0  # Target lifetime for the table (Part a)
 LIFETIME_RANGE_S = np.linspace(1, 40, num=40) #np.logspace(0, 2, 20) # 1s to 100s range for plots (Part b)
 TARGET_GASES = ['H2', 'H2O', 'CH4', 'CO', 'CO2']
-TEMPERATURE_K = 298 # Default temperature from IonLifetimes, ensure consistency
+TEMPERATURE_K = 293 # Default temperature from IonLifetimes, ensure consistency which also had 293 K
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -216,7 +216,7 @@ for machine in machines:
         x = np.arange(len(TARGET_GASES)) # the label locations
         width = 0.25 # the width of the bars
 
-        fig, ax = plt.subplots(figsize=(4.6, 4.1), constrained_layout=True)
+        fig, ax = plt.subplots(figsize=(4.3, 3.9), constrained_layout=True)
         # Check for zero values before plotting log scale
         valid_el = np.array(el_values) > 0
         valid_ec = np.array(ec_values) > 0
@@ -241,16 +241,16 @@ for machine in machines:
              legend_labels.append('Electron Capture (EC=0)')
 
         ax.set_ylabel('$\\sigma$ [m$^2$]', fontsize=17)
-        ax.text(0.013, 0.94, '{:.1f} MeV/u: {}'.format(lifetime_calculator.e_kin, format_projectile_latex_simplified(projectile, lifetime_calculator.q)),
-                fontsize=14.5, transform=ax.transAxes)
+        ax.text(0.013, 0.92, '{:.1f} MeV/u: {}'.format(lifetime_calculator.e_kin, format_projectile_latex_simplified(projectile, lifetime_calculator.q)),
+                fontsize=16.1, transform=ax.transAxes)
         ax.set_xticks(x)
         ax.grid(alpha=0.45)
         # Apply the function to each label in the index
         latex_labels = [convert_to_molecule_state(label) for i, label in enumerate(TARGET_GASES)]
                 
-        ax.set_xticklabels(latex_labels, fontsize=13)
+        ax.set_xticklabels(latex_labels, fontsize=14)
         if legend_handles: # Only show legend if there's something to label
-             ax.legend(legend_handles, legend_labels, fontsize=12.5, loc='lower right')
+             ax.legend(legend_handles, legend_labels, fontsize=13.5, loc='lower right')
 
         # Use log scale only if there are positive values, otherwise linear
         all_vals = np.array(el_values + ec_values)
@@ -268,7 +268,7 @@ for machine in machines:
 
         #plt.grid(True, axis='y', which='both', linestyle='--', linewidth=0.5)
         filename_c = os.path.join(OUTPUT_DIR, f'{machine}_{projectile}_cross_sections.png')
-        plt.savefig(filename_c)
+        plt.savefig(filename_c, dpi=350)
         plt.close()
         #print(f"    Saved plot: {filename_c}")
 
